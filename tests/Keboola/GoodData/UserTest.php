@@ -44,6 +44,8 @@ class UserTest extends \PHPUnit_Framework_TestCase
         $this->assertArrayHasKey('firstName', $result['accountSetting']);
         $this->assertEquals($newFirstName, $result['accountSetting']['firstName']);
 
+        $this->assertEquals($userId, $client->retrieveUserId($email, GOODDATA_DOMAIN));
+
         $this->assertEmpty($client->deleteUser($userId));
     }
 }

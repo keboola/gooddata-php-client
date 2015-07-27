@@ -52,7 +52,7 @@ class Client
 
 
     /******************************************
-     * @section Users handling
+     * @section Users
      *****************************************/
 
     /**
@@ -143,6 +143,24 @@ class Client
     }
 
     /**
+     * Retrieves user id from email
+     * @param $email
+     * @param $domain
+     * @return bool|string
+     */
+    public function retrieveUserId($email, $domain)
+    {
+        $result = $this->request('GET', "/gdc/account/domains/{$domain}/users?login={$email}");
+        if (!empty($result['accountSettings']['items'])
+            && count($result['accountSettings']['items'])
+            && !empty($result['accountSettings']['items'][0]['accountSetting']['links']['self'])
+        ) {
+            return self::getIdFromUri($result['accountSettings']['items'][0]['accountSetting']['links']['self']);
+        }
+        return false;
+    }
+
+    /**
      * Drops user
      * @param $uid
      * @return string
@@ -155,7 +173,7 @@ class Client
 
 
     /******************************************
-     * @section Users handling
+     * @section Projects
      *****************************************/
 
     /**
@@ -225,6 +243,42 @@ class Client
     }
 
     /**
+     * Clones project from other project
+     * @param $sourcePid
+     * @param $targetPid
+     * @param $includeData
+     * @param $includeUsers
+     * @throws Exception
+     * @return bool
+     */
+    public function cloneProject($sourcePid, $targetPid, $includeData = false, $includeUsers = false)
+    {
+        $params = [
+            'exportProject' => [
+                'exportUsers' => $includeUsers,
+                'exportData' => $includeData
+            ]
+        ];
+        $result = $this->request('POST', "/gdc/md/{$sourcePid}/maintenance/export", $params);
+        if (empty($result['exportArtifact']['token']) || empty($result['exportArtifact']['status']['uri'])) {
+            throw new Exception('Clone export failed', 0, null, $result);
+        }
+
+        $this->pollTask($result['exportArtifact']['status']['uri']);
+
+        $result = $this->request('POST', "/gdc/md/{$targetPid}/maintenance/import", [
+            'importProject' => [
+                'token' => $result['exportArtifact']['token']
+            ]
+        ]);
+        if (empty($result['uri'])) {
+            throw new Exception('Clone import failed', 0, null, $result);
+        }
+
+        $this->pollTask($result['uri']);
+    }
+
+    /**
      * Deletes project
      * @param $pid
      * @return array
@@ -275,6 +329,35 @@ class Client
         }
 
         $this->refreshToken();
+    }
+
+    /**
+     * Poll task uri and wait for its finish
+     * @param $uri
+     * @throws Exception
+     */
+    public function pollTask($uri)
+    {
+        $repeat = true;
+        $i = 0;
+        do {
+            sleep(self::WAIT_INTERVAL * ($i + 1));
+
+            $result = $this->request('GET', $uri);
+            if (isset($result['taskState']['status'])) {
+                if (in_array($result['taskState']['status'], ['OK', 'ERROR', 'WARNING'])) {
+                    $repeat = false;
+                }
+            } else {
+                throw new Exception('Bad response', 0, null, $result);
+            }
+
+            $i++;
+        } while ($repeat);
+
+        if ($result['taskState']['status'] != 'OK') {
+            throw new Exception('Bad response', 0, null, $result);
+        }
     }
 
     /**
