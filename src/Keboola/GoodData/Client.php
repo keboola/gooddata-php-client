@@ -41,9 +41,8 @@ class Client
         ]);
         $retry = new RetrySubscriber([
             'filter' => RetrySubscriber::createChainFilter([
-                RetrySubscriber::createConnectFilter(),
+                RetrySubscriber::createCurlFilter(),
                 RetrySubscriber::createStatusFilter([500, 502, 504, 509]),
-                RetrySubscriber::createCurlFilter()
             ])
         ]);
         $this->client->getEmitter()->attach($retry);
@@ -322,7 +321,7 @@ class Client
         }
 
         if ($response) {
-            $this->authSst = self::findCookie($response->getHeaderAsArray('Set-Cookie'), 'GDCAuthSST');
+            $this->authSst = self::findCookie($response->getHeader('Set-Cookie', true), 'GDCAuthSST');
         }
         if (!$this->authSst) {
             throw new Exception('GoodData API login failed');
@@ -455,7 +454,7 @@ class Client
         }
 
         if ($response) {
-            $this->authTt = self::findCookie($response->getHeaderAsArray('Set-Cookie'), 'GDCAuthTT');
+            $this->authTt = self::findCookie($response->getHeader('Set-Cookie', true), 'GDCAuthTT');
         }
         if (!$this->authTt) {
             throw new Exception('Refresh token failed');
