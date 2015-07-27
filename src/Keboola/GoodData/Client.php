@@ -14,6 +14,7 @@ use GuzzleHttp\Subscriber\Retry\RetrySubscriber;
 class Client
 {
     const BASE_URL = 'https://secure.gooddata.com';
+    const WAIT_INTERVAL = 10;
 
     /** @var \GuzzleHttp\Client  */
     protected $client;
@@ -23,6 +24,9 @@ class Client
     protected $authSst;
     protected $authTt;
 
+    /**
+     * @param string $url Base url of GoodData API if not the default one
+     */
     public function __construct($url = null)
     {
         $this->client = new \GuzzleHttp\Client([
@@ -45,27 +49,203 @@ class Client
         $this->client->getEmitter()->attach($retry);
     }
 
-    public static function getUserIdFromUri($uri)
-    {
-        return substr($uri, strrpos($uri, '/')+1);
-    }
 
+
+    /******************************************
+     * @section Users handling
+     *****************************************/
+
+    /**
+     * Gets user info from API
+     * @param $uid
+     * @return array
+     */
     public function getUser($uid)
     {
         return $this->request('GET', "/gdc/account/profile/{$uid}");
     }
 
+    /**
+     * Gets info about currently logged-in user from API
+     * @return array
+     */
     public function getCurrentUser()
     {
         return $this->getUser('current');
     }
 
+    /**
+     * Gets user id of currently logged-in user
+     * @return string
+     */
     public function getCurrentUserId()
     {
         $result = $this->getCurrentUser();
-        return self::getUserIdFromUri($result['accountSetting']['links']['self']);
+        return self::getIdFromUri($result['accountSetting']['links']['self']);
     }
 
+    /**
+     * Creates user in domain
+     * @param $domain
+     * @param $email
+     * @param $password
+     * @param $firstName
+     * @param $lastName
+     * @param null $ssoProvider
+     * @return string
+     * @throws Exception
+     */
+    public function createUser($domain, $email, $password, $firstName, $lastName, $ssoProvider = null)
+    {
+        $uri = sprintf('/gdc/account/domains/%s/users', $domain);
+        $params = [
+            'accountSetting' => [
+                'login' => strtolower($email),
+                'email' => strtolower($email),
+                'password' => $password,
+                'verifyPassword' => $password,
+                'firstName' => $firstName,
+                'lastName' => $lastName,
+                'ssoProvider' => $ssoProvider
+            ],
+        ];
+
+        try {
+            $result = $this->request('POST', $uri, $params);
+            if (!isset($result['uri'])) {
+                throw new Exception("User '{$email}' cannot be created, result does not contain 'uri'", 0, null, $result);
+            }
+            return self::getIdFromUri($result['uri']);
+        } catch (Exception $e) {
+            $response = $e->getResponse();
+            if (isset($response['error']['errorClass']) && strpos($response['error']['errorClass'], 'LoginNameAlreadyRegisteredException') !== false) {
+                throw new Exception("User '{$email}' cannot be created, it already exists in another domain", $e->getCode(), $e, $response);
+            } else {
+                $error = isset($details['error']['message']) ? $details['error']['message'] : $e->getMessage();
+                throw new Exception("User '{$email}' cannot be created: {$error}", $e->getCode(), $e, $response);
+            }
+        }
+    }
+
+    /**
+     * Updates user info
+     * @param $uid
+     * @param $data
+     * @return array
+     */
+    public function updateUser($uid, array $data)
+    {
+        $userData = $this->getUser($uid);
+        unset($userData['accountSetting']['login']);
+        unset($userData['accountSetting']['email']);
+        $userData['accountSetting'] = array_merge($userData['accountSetting'], $data);
+        return $this->request('PUT', '/gdc/account/profile/'.$uid, $userData);
+    }
+
+    /**
+     * Drops user
+     * @param $uid
+     * @return string
+     */
+    public function deleteUser($uid)
+    {
+        return $this->request('DELETE', '/gdc/account/profile/' . $uid);
+    }
+
+
+
+    /******************************************
+     * @section Users handling
+     *****************************************/
+
+    /**
+     * Create project
+     * @param $name
+     * @param $authToken
+     * @param null $description
+     * @return string
+     * @throws Exception
+     */
+    public function createProject($name, $authToken, $description = null)
+    {
+        $params = [
+            'project' => [
+                'content' => [
+                    'guidedNavigation' => 1,
+                    'driver' => 'Pg',
+                    'authorizationToken' => $authToken
+                ],
+                'meta' => [
+                    'title' => $name
+                ]
+            ]
+        ];
+        if ($description) {
+            $params['project']['meta']['summary'] = $description;
+        }
+        $result = $this->request('POST', '/gdc/projects', $params);
+
+        if (empty($result['uri'])) {
+            throw new Exception("Create project call failed", 0, null, $result);
+        }
+
+        $projectUri = $result['uri'];
+
+        // Wait until project is ready
+        $repeat = true;
+        $i = 1;
+        do {
+            sleep(self::WAIT_INTERVAL * ($i + 1));
+
+            $result = $this->request('GET', $projectUri);
+            if (isset($result['project']['content']['state']) && $result['project']['content']['state'] != 'DELETED') {
+                if ($result['project']['content']['state'] == 'ENABLED') {
+                    $repeat = false;
+                }
+            } else {
+                throw new Exception("Get project uri {$projectUri} after create project call failed", 0, null, $result);
+            }
+
+            $i++;
+        } while ($repeat);
+
+        return self::getIdFromUri($projectUri);
+    }
+
+    /**
+     * Get project info
+     *
+     * @param $pid
+     * @throws Exception
+     * @return array
+     */
+    public function getProject($pid)
+    {
+        return $this->request('GET', "/gdc/projects/{$pid}");
+    }
+
+    /**
+     * Deletes project
+     * @param $pid
+     * @return array
+     */
+    public function deleteProject($pid)
+    {
+        return $this->request('DELETE', "/gdc/projects/{$pid}");
+    }
+
+
+
+    /******************************************
+     * @section Common methods
+     *****************************************/
+
+    /**
+     * Process user login
+     * @param $username
+     * @param $password
+     * @throws Exception
+     */
     public function login($username, $password)
     {
         $this->username = $username;
@@ -97,6 +277,10 @@ class Client
         $this->refreshToken();
     }
 
+    /**
+     * Check if API is available and not under maintenance
+     * @return bool
+     */
     public function ping()
     {
         $errorCount = 0;
@@ -115,6 +299,24 @@ class Client
         return false;
     }
 
+    /**
+     * Extracts user or project id from it's uri
+     * @param $uri
+     * @return string
+     */
+    public static function getIdFromUri($uri)
+    {
+        return substr($uri, strrpos($uri, '/')+1);
+    }
+
+    /**
+     * @param $method
+     * @param $uri
+     * @param array $params
+     * @param bool|true $refreshToken
+     * @return array
+     * @throws Exception
+     */
     private function request($method, $uri, $params = [], $refreshToken = true)
     {
         if (!$this->authTt && $refreshToken) {
@@ -144,10 +346,10 @@ class Client
 
             } catch (RequestException $e) {
                 $lastException = $e;
+                //@TODO handle exceptions
                 echo PHP_EOL.$e->getMessage().PHP_EOL.PHP_EOL;
                 echo $e->getRequest().PHP_EOL.PHP_EOL;
                 echo $e->getResponse().PHP_EOL.PHP_EOL;
-                
             }
 
             if ($isMaintenance) {

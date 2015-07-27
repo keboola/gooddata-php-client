@@ -22,8 +22,28 @@ class UserTest extends \PHPUnit_Framework_TestCase
         $this->assertArrayHasKey('links', $userInfo['accountSetting']);
         $this->assertArrayHasKey('self', $userInfo['accountSetting']['links']);
 
-        $uid = $client->getUserIdFromUri($userInfo['accountSetting']['links']['self']);
+        $uid = Client::getIdFromUri($userInfo['accountSetting']['links']['self']);
         $this->assertStringEndsWith($uid, $userInfo['accountSetting']['links']['self']);
         $this->assertEquals($uid, $client->getCurrentUserId());
+    }
+
+    public function testCreateUpdateAndDeleteUser()
+    {
+        $client = new Client();
+        $client->login(GOODDATA_USERNAME, GOODDATA_PASSWORD);
+
+        $email = uniqid() . '@test.com';
+
+        $userId = $client->createUser(GOODDATA_DOMAIN, $email, uniqid(), 'Test', 'Test');
+        $this->assertNotEmpty($userId);
+
+        $newFirstName = uniqid();
+        $client->updateUser($userId, ['firstName' => $newFirstName]);
+        $result = $client->getUser($userId);
+        $this->assertArrayHasKey('accountSetting', $result);
+        $this->assertArrayHasKey('firstName', $result['accountSetting']);
+        $this->assertEquals($newFirstName, $result['accountSetting']['firstName']);
+
+        $this->assertEmpty($client->deleteUser($userId));
     }
 }
