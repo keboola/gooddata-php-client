@@ -9,7 +9,7 @@
          stopOnFailure="true"
          stopOnError="true"
          syntaxCheck="false"
-         bootstrap="bootstrap.php">
+         bootstrap="tests/bootstrap.php">
 
     <testsuite name="API Test Suite">
         <directory>tests</directory>
