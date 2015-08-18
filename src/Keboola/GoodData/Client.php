@@ -455,6 +455,7 @@ class Client
 
         if ($response) {
             $this->authTt = self::findCookie($response->getHeader('Set-Cookie', true), 'GDCAuthTT');
+            return $this->authTt;
         }
         if (!$this->authTt) {
             throw new Exception('Refresh token failed');
