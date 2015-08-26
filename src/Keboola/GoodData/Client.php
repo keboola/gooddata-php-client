@@ -183,7 +183,7 @@ class Client
      * @return string
      * @throws Exception
      */
-    public function createProject($name, $authToken, $description = null)
+    public function createProject($name, $authToken, $description = null, $environment = null)
     {
         $params = [
             'project' => [
@@ -199,6 +199,9 @@ class Client
         ];
         if ($description) {
             $params['project']['meta']['summary'] = $description;
+        }
+        if ($environment) {
+            $params['project']['content']['environment'] = $environment;
         }
         $result = $this->request('POST', '/gdc/projects', $params);
 
@@ -242,7 +245,7 @@ class Client
     }
 
     /**
-     * Clones project from other project
+     * Clone project from other project
      * @param $sourcePid
      * @param $targetPid
      * @param $includeData
@@ -278,13 +281,160 @@ class Client
     }
 
     /**
-     * Deletes project
+     * Delete project
      * @param $pid
      * @return array
      */
     public function deleteProject($pid)
     {
         return $this->request('DELETE', "/gdc/projects/{$pid}");
+    }
+
+
+
+    /******************************************
+     * @section Project Model
+     *****************************************/
+
+    /**
+     * Get LDM model of the project
+     * @param $pid
+     * @return array
+     * @throws Exception
+     */
+    public function getProjectModel($pid)
+    {
+        $result = $this->request('GET', "/gdc/projects/{$pid}/model/view");
+        $taskResult = $this->pollAsyncTask($result);
+        if (!isset($taskResult['projectModelView']['model'])) {
+            throw new Exception('Get Project Model async task returned wrong response', null, $taskResult);
+        }
+        return $taskResult['projectModelView']['model'];
+    }
+
+    /**
+     * Post model to model/diff API call and get maql commands needed to adjust the model accordingly
+     * @param $pid
+     * @param $model
+     * @return array
+     * @throws Exception
+     */
+    public function getUpdateMaqlForModelDiff($pid, $model)
+    {
+        $result = $this->request('POST', "/gdc/projects/{$pid}/model/diff", [
+            'diffRequest' => ['targetModel' => $model]
+        ]);
+        $taskResult = $this->pollAsyncTask($result);
+        if (isset($taskResult['details']['error']['validationErrors'])) {
+            $errors = [];
+            foreach ($taskResult['details']['error']['validationErrors'] as $err) {
+                $errors[] = vsprintf($err['validationError']['message'], $err['validationError']['parameters']);
+            }
+            throw new Exception('Project validation failed', null, $errors);
+        }
+        if (!isset($taskResult['projectModelDiff']['updateScripts'])) {
+            throw new Exception('Update Project Model async task returned wrong response', null, $taskResult);
+        }
+
+        // Choose less destructive maql which preserves data if possible
+        $lessDestructiveMaql = [];
+        $moreDestructiveMaql = [];
+        foreach ($taskResult['projectModelDiff']['updateScripts'] as $script) {
+            if ($script['updateScript']['preserveData'] && !$script['updateScript']['cascadeDrops']) {
+                $lessDestructiveMaql = $script['updateScript']['maqlDdlChunks'];
+            }
+            if (!count($lessDestructiveMaql) && !$script['updateScript']['preserveData'] && !$script['updateScript']['cascadeDrops']) {
+                $lessDestructiveMaql = $script['updateScript']['maqlDdlChunks'];
+            }
+            if (!$script['updateScript']['preserveData'] && $script['updateScript']['cascadeDrops']) {
+                $moreDestructiveMaql = $script['updateScript']['maqlDdlChunks'];
+            }
+            if (!count($moreDestructiveMaql) && $script['updateScript']['preserveData'] && $script['updateScript']['cascadeDrops']) {
+                $moreDestructiveMaql = $script['updateScript']['maqlDdlChunks'];
+            }
+        }
+
+        $description = [];
+        foreach ($taskResult['projectModelDiff']['updateOperations'] as $o) {
+            $description[] = vsprintf($o['updateOperation']['description'], $o['updateOperation']['parameters']);
+        }
+
+        return [
+            'moreDestructiveMaql' => $moreDestructiveMaql,
+            'lessDestructiveMaql' => $lessDestructiveMaql,
+            'description' => $description
+        ];
+    }
+
+    public function updateModel($pid, $model, $dryRun = false)
+    {
+        $update = $this->getUpdateMaqlForModelDiff($pid, $model);
+        if ($dryRun) {
+            return $update;
+        } else {
+            if (count($update['lessDestructiveMaql'])) {
+                foreach ($update['lessDestructiveMaql'] as $i => $m) {
+                    try {
+                        $this->executeMaql($pid, $m);
+                    } catch (Exception $e) {
+                        if (!empty($update['moreDestructiveMaql'][$i])) {
+                            $m = $update['moreDestructiveMaql'][$i];
+                            $this->executeMaql($pid, $m);
+                        } else {
+                            throw $e;
+                        }
+                    }
+
+                    return ['description' => $update['description'], 'maql' => $m];
+                }
+            }
+            return false;
+        }
+    }
+
+    /**
+     * Execute Maql asynchronously and wait for result
+     * @param $pid
+     * @param $maql
+     * @return array
+     * @throws Exception
+     */
+    public function executeMaql($pid, $maql)
+    {
+        $result = $this->request('POST', "/gdc/md/{$pid}/ldm/manage2", [
+            'manage' => ['maql' => $maql]
+        ]);
+
+        $pollLink = null;
+        if (isset($result['entries']) && count($result['entries'])) {
+            foreach ($result['entries'] as $entry) {
+                if (isset($entry['category']) && isset($entry['link']) && $entry['category'] == 'tasks-status') {
+                    $pollLink = $entry['link'];
+                    break;
+                }
+            }
+        }
+        if (!$pollLink) {
+            throw new Exception("Execute Maql did not return poll link: ", null, $result);
+        }
+
+        $try = 1;
+        do {
+            sleep(self::WAIT_INTERVAL * ($try + 1));
+            $taskResult = $this->request('GET', $pollLink);
+            if (!isset($taskResult['wTaskStatus']['status'])) {
+                throw new Exception('Execute Maql poll result has wrong format', null, $taskResult);
+            }
+
+            $try++;
+        } while (in_array($taskResult['wTaskStatus']['status'], ['PREPARED', 'RUNNING']));
+
+        if ($taskResult['wTaskStatus']['status'] == 'ERROR') {
+            $messages = isset($taskResponse['wTaskStatus']['messages']) ? $taskResponse['wTaskStatus']['messages'] : null;
+            throw new Exception('Execute Maql task returned errors', null, $messages);
+        }
+
+        return $taskResult;
     }
 
 
@@ -338,10 +488,9 @@ class Client
     public function pollTask($uri)
     {
         $repeat = true;
-        $i = 0;
+        $try = 0;
         do {
-            sleep(self::WAIT_INTERVAL * ($i + 1));
-
+            sleep(self::WAIT_INTERVAL * ($try + 1));
             $result = $this->request('GET', $uri);
             if (isset($result['taskState']['status'])) {
                 if (in_array($result['taskState']['status'], ['OK', 'ERROR', 'WARNING'])) {
@@ -351,11 +500,30 @@ class Client
                 throw new Exception('Bad response', 0, null, $result);
             }
 
-            $i++;
+            $try++;
         } while ($repeat);
 
         if ($result['taskState']['status'] != 'OK') {
             throw new Exception('Bad response', 0, null, $result);
+        }
+    }
+
+    public function pollAsyncTask($result)
+    {
+        if (isset($result['asyncTask']['link']['poll'])) {
+            $try = 1;
+            do {
+                sleep(self::WAIT_INTERVAL * ($try + 1));
+                $taskResult = $this->request('GET', $result['asyncTask']['link']['poll']);
+
+                if (!isset($taskResult['asyncTask']['link']['poll'])) {
+                    return $taskResult;
+                }
+
+                $try++;
+            } while (true);
+        } else {
+            throw new Exception('Async task does not contain poll link: ', null, $result);
         }
     }
 
@@ -455,11 +623,11 @@ class Client
 
         if ($response) {
             $this->authTt = self::findCookie($response->getHeader('Set-Cookie', true), 'GDCAuthTT');
-            return $this->authTt;
         }
         if (!$this->authTt) {
             throw new Exception('Refresh token failed');
         }
+        return $this->authTt;
     }
 
     /**

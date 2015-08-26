@@ -10,7 +10,6 @@ use Keboola\GoodData\Client;
 
 class DataSetTest extends \PHPUnit_Framework_TestCase
 {
-
     public function testCloneProject()
     {
         $client = new Client();
@@ -18,12 +17,12 @@ class DataSetTest extends \PHPUnit_Framework_TestCase
 
         $projectName = uniqid();
 
-        $sourceProjectId = $client->createProject($projectName, GOODDATA_AUTH_TOKEN);
+        $sourceProjectId = $client->createProject($projectName, GOODDATA_AUTH_TOKEN, null, 'TESTING');
         $this->assertNotEmpty($sourceProjectId);
 
         //@TODO create some datasets in source project
 
-        $targetProjectId = $client->createProject($projectName, GOODDATA_AUTH_TOKEN);
+        $targetProjectId = $client->createProject($projectName, GOODDATA_AUTH_TOKEN, null, 'TESTING');
         $this->assertNotEmpty($targetProjectId);
 
         $client->cloneProject($sourceProjectId, $targetProjectId);

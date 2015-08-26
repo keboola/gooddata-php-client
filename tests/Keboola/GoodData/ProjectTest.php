@@ -18,7 +18,7 @@ class ProjectTest extends \PHPUnit_Framework_TestCase
 
         $projectName = uniqid();
 
-        $projectId = $client->createProject($projectName, GOODDATA_AUTH_TOKEN);
+        $projectId = $client->createProject($projectName, GOODDATA_AUTH_TOKEN, null, 'TESTING');
         $this->assertNotEmpty($projectId);
 
         $result = $client->getProject($projectId);
@@ -28,6 +28,11 @@ class ProjectTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($projectName, $result['project']['meta']['title']);
 
         $this->assertEmpty($client->deleteProject($projectId));
+        $result = $client->getProject($projectId);
+        $this->assertArrayHasKey('project', $result);
+        $this->assertArrayHasKey('content', $result['project']);
+        $this->assertArrayHasKey('state', $result['project']['content']);
+        $this->assertEquals('DELETED', $result['project']['content']['state']);
     }
 
 }
