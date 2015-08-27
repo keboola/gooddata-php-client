@@ -34,5 +34,4 @@ class ProjectTest extends \PHPUnit_Framework_TestCase
         $this->assertArrayHasKey('state', $result['project']['content']);
         $this->assertEquals('DELETED', $result['project']['content']['state']);
     }
-
 }

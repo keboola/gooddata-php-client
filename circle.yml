@@ -1,5 +1,0 @@
-machine:
-  timezone:
-    Europe/Prague
-  php:
-    version: 5.6.5
