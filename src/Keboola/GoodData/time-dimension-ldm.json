@@ -1,0 +1,150 @@
+{
+    "identifier": "dataset.time.%ID%",
+    "title": "Time (%TITLE%)",
+    "anchor": {
+        "attribute": {
+            "identifier": "attr.time.second.of.day.%ID%",
+            "title": "Time (%TITLE%)",
+            "folder": "Time Dimension (%TITLE%)",
+            "labels": [
+                {
+                    "label": {
+                        "identifier": "label.time.%ID%",
+                        "title": "Time (hh:mm:ss)",
+                        "type": "GDC.text",
+                        "dataType": "VARCHAR(128)"
+                    }
+                },
+                {
+                    "label": {
+                        "identifier": "label.time.twelve.%ID%",
+                        "title": "Time (HH:mm:ss)",
+                        "type": "GDC.text",
+                        "dataType": "VARCHAR(128)"
+                    }
+                },
+                {
+                    "label": {
+                        "identifier": "label.time.second.of.day.%ID%",
+                        "title": "Second of Day",
+                        "type": "GDC.text",
+                        "dataType": "VARCHAR(128)"
+                    }
+                }
+            ],
+            "defaultLabel": "label.time.%ID%",
+            "sortOrder": {
+                "attributeSortOrder": {
+                    "label": "label.time.%ID%",
+                    "direction": "ASC"
+                }
+            }
+        }
+    },
+    "attributes": [
+        {
+            "attribute": {
+                "identifier": "attr.time.second.%ID%",
+                "title": "Second (%TITLE%)",
+                "folder": "Time dimension (%TITLE%)",
+                "labels": [
+                    {
+                        "label": {
+                            "identifier": "label.time.second.%ID%",
+                            "title": "Second",
+                            "type": "GDC.text",
+                            "dataType": "VARCHAR(128)"
+                        }
+                    }
+                ],
+                "defaultLabel": "label.time.second.%ID%"
+            }
+        },
+        {
+            "attribute": {
+                "identifier": "attr.time.minute.of.day.%ID%",
+                "title": "Minute of Day (%TITLE%)",
+                "folder": "Time dimension (%TITLE%)",
+                "labels": [
+                    {
+                        "label": {
+                            "identifier": "label.time.minute.of.day.%ID%",
+                            "title": "Minute of Day",
+                            "type": "GDC.text",
+                            "dataType": "VARCHAR(128)"
+                        }
+                    }
+                ],
+                "defaultLabel": "label.time.minute.of.day.%ID%"
+            }
+        },
+        {
+            "attribute": {
+                "identifier": "attr.time.minute.%ID%",
+                "title": "Minute (%TITLE%)",
+                "folder": "Time dimension (%TITLE%)",
+                "labels": [
+                    {
+                        "label": {
+                            "identifier": "label.time.minute.%ID%",
+                            "title": "Minute",
+                            "type": "GDC.text",
+                            "dataType": "VARCHAR(128)"
+                        }
+                    }
+                ],
+                "defaultLabel": "label.time.minute.%ID%"
+            }
+        },
+        {
+            "attribute": {
+                "identifier": "attr.time.hour.of.day.%ID%",
+                "title": "Hour (%TITLE%)",
+                "folder": "Time dimension (%TITLE%)",
+                "labels": [
+                    {
+                        "label": {
+                            "identifier": "label.time.hour.of.day.%ID%",
+                            "title": "Hour (0-23)",
+                            "type": "GDC.text",
+                            "dataType": "VARCHAR(128)"
+                        }
+                    },
+                    {
+                        "label": {
+                            "identifier": "label.time.hour.of.day.twelve.%ID%",
+                            "title": "Hour (1-12)",
+                            "type": "GDC.text",
+                            "dataType": "VARCHAR(128)"
+                        }
+                    }
+                ],
+                "defaultLabel": "label.time.hour.of.day.%ID%",
+                "sortOrder": {
+                    "attributeSortOrder": {
+                        "label": "label.time.hour.of.day.%ID%",
+                        "direction": "ASC"
+                    }
+                }
+            }
+        },
+        {
+            "attribute": {
+                "identifier": "attr.time.ampm.%ID%",
+                "title": "AM\/PM (%TITLE%)",
+                "folder": "Time dimension (%TITLE%)",
+                "labels": [
+                    {
+                        "label": {
+                            "identifier": "label.time.ampm.%ID%",
+                            "title": "AM\/PM",
+                            "type": "GDC.text",
+                            "dataType": "VARCHAR(128)"
+                        }
+                    }
+                ],
+                "defaultLabel": "label.time.ampm.%ID%"
+            }
+        }
+    ]
+}
