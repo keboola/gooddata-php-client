@@ -3,11 +3,13 @@ engines:
     enabled: true
     config:
       languages:
-        - php
+      - php
   fixme:
     enabled: true
   phpcodesniffer:
     enabled: true
+    config:
+      standard: "PSR1,PSR2"
   phpmd:
     enabled: true
 ratings:
