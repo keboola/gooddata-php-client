@@ -1,220 +1,269 @@
 {
-    "projectModel" : {
-        "datasets" : [ {
-            "dataset" : {
-                "identifier" : "dataset.categories",
-                "title" : "Categories",
-                "anchor" : {
-                    "attribute" : {
-                        "identifier" : "attr.categories.id",
-                        "title" : "Id",
-                        "folder" : "Categories",
-                        "labels" : [ {
-                            "label" : {
-                                "identifier" : "label.categories.id",
-                                "title" : "Id",
-                                "type" : "GDC.text",
-                                "dataType" : "VARCHAR(128)"
+    "projectModel": {
+        "datasets": [
+            {
+                "dataset": {
+                    "identifier": "dataset.prooducts",
+                    "title": "Products",
+                    "anchor": {
+                        "attribute": {
+                            "identifier": "attr.products.id",
+                            "title": "Id",
+                            "folder": "Products",
+                            "deprecated": false,
+                            "defaultLabel": "label.products.id",
+                            "labels": [
+                                {
+                                    "label": {
+                                        "identifier": "label.products.id",
+                                        "title": "Id",
+                                        "type": "GDC.text"
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "facts": [
+                        {
+                            "fact": {
+                                "identifier": "tm.dt.products.date1",
+                                "title": "date1 Time",
+                                "dataType": "INT",
+                                "deprecated": false
                             }
-                        } ],
-                        "deprecated" : false
-                    }
-                },
-                "attributes" : [ {
-                    "attribute" : {
-                        "identifier" : "attr.categories.name",
-                        "title" : "Cat Name",
-                        "folder" : "Categories",
-                        "labels" : [ {
-                            "label" : {
-                                "identifier" : "label.categories.name",
-                                "title" : "Cat Name",
-                                "type" : "GDC.text",
-                                "dataType" : "VARCHAR(20)"
+                        }
+                    ],
+                    "attributes": [
+                        {
+                            "attribute": {
+                                "identifier": "attr.prodakts.name",
+                                "title": "Name",
+                                "defaultLabel": "label.products.name",
+                                "folder": "Products",
+                                "deprecated": false,
+                                "labels": [
+                                    {
+                                        "label": {
+                                            "identifier": "label.products.name",
+                                            "title": "Name",
+                                            "type": "GDC.text"
+                                        }
+                                    }
+                                ]
                             }
-                        } ],
-                        "defaultLabel" : "label.categories.name",
-                        "deprecated" : false
-                    }
-                } ]
-            }
-        }, {
-            "dataset" : {
-                "identifier" : "dataset.products",
-                "title" : "Products",
-                "anchor" : {
-                    "attribute" : {
-                        "identifier" : "attr.products.id",
-                        "title" : "Id",
-                        "folder" : "Products",
-                        "labels" : [ {
-                            "label" : {
-                                "identifier" : "label.products.id",
-                                "title" : "Id",
-                                "type" : "GDC.text",
-                                "dataType" : "VARCHAR(3)"
+                        }
+                    ],
+                    "references": [
+                        "dataset.categories",
+                        "date1",
+                        "dataset.time.date1"
+                    ]
+                }
+            },
+            {
+                "dataset": {
+                    "identifier": "dataset.categories",
+                    "title": "Categories",
+                    "anchor": {
+                        "attribute": {
+                            "identifier": "attr.categories.id",
+                            "title": "Id",
+                            "folder": "Categories",
+                            "deprecated": false,
+                            "defaultLabel": "label.categories.id",
+                            "labels": [
+                                {
+                                    "label": {
+                                        "identifier": "label.categories.id",
+                                        "title": "Id",
+                                        "type": "GDC.text"
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "attributes": [
+                        {
+                            "attribute": {
+                                "identifier": "attr.categories.name",
+                                "title": "Name",
+                                "defaultLabel": "label.categories.name",
+                                "folder": "Categories",
+                                "deprecated": false,
+                                "labels": [
+                                    {
+                                        "label": {
+                                            "identifier": "label.categories.name",
+                                            "title": "Name",
+                                            "type": "GDC.text"
+                                        }
+                                    }
+                                ]
                             }
-                        } ],
-                        "deprecated" : false
-                    }
-                },
-                "attributes" : [ {
-                    "attribute" : {
-                        "identifier" : "attr.products.name",
-                        "title" : "Product Name",
-                        "folder" : "Products",
-                        "labels" : [ {
-                            "label" : {
-                                "identifier" : "label.products.name",
-                                "title" : "Product Name",
-                                "type" : "GDC.text",
-                                "dataType" : "VARCHAR(128)"
+                        }
+                    ]
+                }
+            },
+            {
+                "dataset": {
+                    "identifier": "dataset.time.date1",
+                    "title": "Time (Date 1)",
+                    "anchor": {
+                        "attribute": {
+                            "identifier": "attr.time.second.of.day.date1",
+                            "title": "Time (Date 1)",
+                            "folder": "Time Dimension (Date 1)",
+                            "labels": [
+                                {
+                                    "label": {
+                                        "identifier": "label.time.date1",
+                                        "title": "Time (hh:mm:ss)",
+                                        "type": "GDC.text",
+                                        "dataType": "VARCHAR(128)"
+                                    }
+                                },
+                                {
+                                    "label": {
+                                        "identifier": "label.time.twelve.date1",
+                                        "title": "Time (HH:mm:ss)",
+                                        "type": "GDC.text",
+                                        "dataType": "VARCHAR(128)"
+                                    }
+                                },
+                                {
+                                    "label": {
+                                        "identifier": "label.time.second.of.day.date1",
+                                        "title": "Second of Day",
+                                        "type": "GDC.text",
+                                        "dataType": "VARCHAR(128)"
+                                    }
+                                }
+                            ],
+                            "defaultLabel": "label.time.date1",
+                            "sortOrder": {
+                                "attributeSortOrder": {
+                                    "label": "label.time.date1",
+                                    "direction": "ASC"
+                                }
                             }
-                        }, {
-                            "label" : {
-                                "identifier" : "label.products.name.info",
-                                "title" : "Info",
-                                "type" : "GDC.text",
-                                "dataType" : "VARCHAR(128)"
-                            }
-                        }, {
-                            "label" : {
-                                "identifier" : "label.products.name.url",
-                                "title" : "url",
-                                "type" : "GDC.link",
-                                "dataType" : "VARCHAR(255)"
-                            }
-                        } ],
-                        "defaultLabel" : "label.products.name",
-                        "sortOrder" : {
-                            "attributeSortOrder" : {
-                                "label" : "label.products.name.url",
-                                "direction" : "DESC"
+                        }
+                    },
+                    "attributes": [
+                        {
+                            "attribute": {
+                                "identifier": "attr.time.second.date1",
+                                "title": "Second (Date 1)",
+                                "folder": "Time dimension (Date 1)",
+                                "labels": [
+                                    {
+                                        "label": {
+                                            "identifier": "label.time.second.date1",
+                                            "title": "Second",
+                                            "type": "GDC.text",
+                                            "dataType": "VARCHAR(128)"
+                                        }
+                                    }
+                                ],
+                                "defaultLabel": "label.time.second.date1"
                             }
                         },
-                        "deprecated" : false
-                    }
-                } ],
-                "facts" : [ {
-                    "fact" : {
-                        "identifier" : "fact.products.price",
-                        "title" : "Price",
-                        "dataType" : "DECIMAL(12,3)",
-                        "deprecated" : false
-                    }
-                } ],
-                "references" : [ "dataset.categories", "productdate" ]
-            }
-        }, {
-            "dataset" : {
-                "identifier" : "dataset.users",
-                "title" : "Users",
-                "anchor" : {
-                    "attribute" : {
-                        "identifier" : "attr.users.id",
-                        "title" : "Uživatelský ídéčko",
-                        "folder" : "out.c-main.users",
-                        "labels" : [ {
-                            "label" : {
-                                "identifier" : "label.users.id",
-                                "title" : "Uživatelský ídéčko",
-                                "type" : "GDC.text",
-                                "dataType" : "VARCHAR(128)"
+                        {
+                            "attribute": {
+                                "identifier": "attr.time.minute.of.day.date1",
+                                "title": "Minute of Day (Date 1)",
+                                "folder": "Time dimension (Date 1)",
+                                "labels": [
+                                    {
+                                        "label": {
+                                            "identifier": "label.time.minute.of.day.date1",
+                                            "title": "Minute of Day",
+                                            "type": "GDC.text",
+                                            "dataType": "VARCHAR(128)"
+                                        }
+                                    }
+                                ],
+                                "defaultLabel": "label.time.minute.of.day.date1"
                             }
-                        } ],
-                        "deprecated" : false
-                    }
-                },
-                "attributes" : [ {
-                    "attribute" : {
-                        "identifier" : "attr.users.name",
-                        "title" : "Jméno uživatele",
-                        "folder" : "out.c-main.users",
-                        "labels" : [ {
-                            "label" : {
-                                "identifier" : "label.users.name",
-                                "title" : "Jméno uživatele",
-                                "type" : "GDC.text",
-                                "dataType" : "VARCHAR(128)"
+                        },
+                        {
+                            "attribute": {
+                                "identifier": "attr.time.minute.date1",
+                                "title": "Minute (Date 1)",
+                                "folder": "Time dimension (Date 1)",
+                                "labels": [
+                                    {
+                                        "label": {
+                                            "identifier": "label.time.minute.date1",
+                                            "title": "Minute",
+                                            "type": "GDC.text",
+                                            "dataType": "VARCHAR(128)"
+                                        }
+                                    }
+                                ],
+                                "defaultLabel": "label.time.minute.date1"
                             }
-                        } ],
-                        "defaultLabel" : "label.users.name",
-                        "deprecated" : false
-                    }
-                } ]
-            }
-        }, {
-            "dataset" : {
-                "identifier" : "dataset.orders",
-                "title" : "out.c-main.orders",
-                "anchor" : {
-                    "attribute" : {
-                        "identifier" : "attr.orders.factsof",
-                        "title" : "Records of orders",
-                        "deprecated" : false
-                    }
-                },
-                "attributes" : [ {
-                    "attribute" : {
-                        "identifier" : "attr.orders.orderid",
-                        "title" : "orderId",
-                        "folder" : "out.c-main.orders",
-                        "labels" : [ {
-                            "label" : {
-                                "identifier" : "label.orders.orderid",
-                                "title" : "orderId",
-                                "type" : "GDC.text",
-                                "dataType" : "VARCHAR(128)"
+                        },
+                        {
+                            "attribute": {
+                                "identifier": "attr.time.hour.of.day.date1",
+                                "title": "Hour (Date 1)",
+                                "folder": "Time dimension (Date 1)",
+                                "labels": [
+                                    {
+                                        "label": {
+                                            "identifier": "label.time.hour.of.day.date1",
+                                            "title": "Hour (0-23)",
+                                            "type": "GDC.text",
+                                            "dataType": "VARCHAR(128)"
+                                        }
+                                    },
+                                    {
+                                        "label": {
+                                            "identifier": "label.time.hour.of.day.twelve.date1",
+                                            "title": "Hour (1-12)",
+                                            "type": "GDC.text",
+                                            "dataType": "VARCHAR(128)"
+                                        }
+                                    }
+                                ],
+                                "defaultLabel": "label.time.hour.of.day.date1",
+                                "sortOrder": {
+                                    "attributeSortOrder": {
+                                        "label": "label.time.hour.of.day.date1",
+                                        "direction": "ASC"
+                                    }
+                                }
                             }
-                        }, {
-                            "label" : {
-                                "identifier" : "label.orders.orderid.label",
-                                "title" : "label",
-                                "type" : "GDC.text",
-                                "dataType" : "VARCHAR(128)"
+                        },
+                        {
+                            "attribute": {
+                                "identifier": "attr.time.ampm.date1",
+                                "title": "AM\/PM (Date 1)",
+                                "folder": "Time dimension (Date 1)",
+                                "labels": [
+                                    {
+                                        "label": {
+                                            "identifier": "label.time.ampm.date1",
+                                            "title": "AM\/PM",
+                                            "type": "GDC.text",
+                                            "dataType": "VARCHAR(128)"
+                                        }
+                                    }
+                                ],
+                                "defaultLabel": "label.time.ampm.date1"
                             }
-                        } ],
-                        "defaultLabel" : "label.orders.orderid",
-                        "deprecated" : false
-                    }
-                }, {
-                    "attribute" : {
-                        "identifier" : "attr.orders.detail",
-                        "title" : "detail",
-                        "folder" : "out.c-main.orders",
-                        "labels" : [ {
-                            "label" : {
-                                "identifier" : "label.orders.detail",
-                                "title" : "detail",
-                                "type" : "GDC.text",
-                                "dataType" : "VARCHAR(128)"
-                            }
-                        } ],
-                        "defaultLabel" : "label.orders.detail",
-                        "deprecated" : false
-                    }
-                } ],
-                "facts" : [ {
-                    "fact" : {
-                        "identifier" : "fact.orders.count",
-                        "title" : "count",
-                        "dataType" : "DECIMAL(12,2)",
-                        "deprecated" : false
-                    }
-                } ],
-                "references" : [ "dataset.products", "orderdate" ]
+                        }
+                    ]
+                }
             }
-        } ],
-        "dateDimensions" : [ {
-            "dateDimension" : {
-                "name" : "productdate",
-                "title" : "Product Date"
+        ],
+        "dateDimensions": [
+            {
+                "dateDimension": {
+                    "name": "date1",
+                    "title": "Date 1"
+                }
             }
-        }, {
-            "dateDimension" : {
-                "name" : "orderdate",
-                "title" : "OrderDate"
-            }
-        } ]
+        ]
     }
 }

@@ -1,0 +1,86 @@
+{
+    "dataSetSLIManifestList" : [
+        {
+            "dataSetSLIManifest": {
+                "file": "products.csv",
+                "dataSet": "dataset.prooducts",
+                "parts": [
+                    {
+                        "columnName": "id",
+                        "populates": [
+                            "label.products.id"
+                        ],
+                        "mode": "FULL",
+                        "referenceKey": 1
+                    },
+                    {
+                        "columnName": "name",
+                        "populates": [
+                            "label.products.name"
+                        ],
+                        "mode": "FULL",
+                        "referenceKey": 1
+                    },
+                    {
+                        "columnName": "category",
+                        "populates": [
+                            "label.categories.id"
+                        ],
+                        "mode": "FULL",
+                        "referenceKey": 1
+                    },
+                    {
+                        "columnName": "date1",
+                        "populates": [
+                            "date1.date.mmddyyyy"
+                        ],
+                        "constraints": {
+                            "date": "yyyy-MM-dd HH:mm:ss"
+                        },
+                        "mode": "FULL",
+                        "referenceKey": 1
+                    },
+                    {
+                        "columnName": "date1_tm",
+                        "populates": [
+                            "tm.dt.products.date1"
+                        ],
+                        "mode": "FULL"
+                    },
+                    {
+                        "columnName": "date1_id",
+                        "populates": [
+                            "label.time.second.of.day.date1"
+                        ],
+                        "mode": "FULL",
+                        "referenceKey": 1
+                    }
+                ]
+            }
+        },
+        {
+            "dataSetSLIManifest": {
+                "file": "categories.csv",
+                "dataSet": "dataset.categories",
+                "parts": [
+                    {
+                        "columnName": "id",
+                        "populates": [
+                            "label.categories.id"
+                        ],
+                        "mode": "FULL",
+                        "referenceKey": 1
+                    },
+                    {
+                        "columnName": "name",
+                        "populates": [
+                            "label.categories.name"
+                        ],
+                        "mode": "FULL",
+                        "referenceKey": 1
+                    }
+                ]
+            }
+        }
+    ]
+}

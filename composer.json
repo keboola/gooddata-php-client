@@ -11,14 +11,17 @@
         }
     ],
     "require": {
-        "php": ">=5.4.0",
-        "guzzlehttp/guzzle": "~4.0",
-        "guzzlehttp/retry-subscriber": "~0.1.1"
+        "php": "~5.6",
+        "psr/log": "~1.0.0",
+        "guzzlehttp/guzzle": "~6.0",
+        "symfony/process": "~3.0"
     },
     "require-dev": {
-        "phpunit/phpunit": "~4.7",
-        "phpunit/php-code-coverage": "~2.0",
-        "squizlabs/php_codesniffer": "2.*"
+        "phpunit/phpunit": "^5",
+        "phpunit/php-code-coverage": "^3",
+        "squizlabs/php_codesniffer": "~2.5",
+        "monolog/monolog": "~1.11",
+        "keboola/php-temp": "0.1.3"
     },
     "minimum-stability": "stable",
     "autoload": {

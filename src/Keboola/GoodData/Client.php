@@ -1,656 +1,500 @@
 <?php
 /**
  * @package gooddata-php-client
- * @copyright 2015 Keboola
+ * @copyright Keboola
  * @author Jakub Matejka <jakub@keboola.com>
  */
 namespace Keboola\GoodData;
 
+use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Exception\ServerException;
-use GuzzleHttp\Exception\TransferException;
-use GuzzleHttp\Subscriber\Retry\RetrySubscriber;
+use GuzzleHttp\MessageFormatter;
+use GuzzleHttp\Middleware;
+use GuzzleHttp\Psr7\Response;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Log\LoggerInterface;
 
 class Client
 {
-    const BASE_URL = 'https://secure.gooddata.com';
+    /**
+     * Number of retries for one API call
+     */
+    const RETRIES_COUNT = 5;
+    /**
+     * Back off time before retrying API call
+     */
+    const BACKOFF_INTERVAL = 1;
+    /**
+     * Back off time before polling of async tasks
+     */
     const WAIT_INTERVAL = 10;
 
-    /** @var \GuzzleHttp\Client  */
-    protected $client;
+    const API_URL = 'https://secure.gooddata.com';
+
+    const DEFAULT_CLIENT_SETTINGS = [
+        'timeout' => 600,
+        'headers' => [
+            'accept' => 'application/json',
+            'content-type' => 'application/json; charset=utf-8'
+        ]
+    ];
+
+    /** @var  \GuzzleHttp\Client */
+    protected $guzzle;
+    protected $apiUrl;
+    /** @var  LoggerInterface */
+    protected $logger;
+    /** @var null MessageFormatter */
+    protected $loggerFormatter;
+    /** @var  array */
+    protected $logData = [];
 
     protected $username;
     protected $password;
-    protected $authSst;
-    protected $authTt;
 
-    /**
-     * @param string $url Base url of GoodData API if not the default one
-     */
-    public function __construct($url = null)
+    /** @var  Datasets */
+    protected $datasets;
+    /** @var  DateDimensions */
+    protected $dateDimensions;
+    /** @var  Filters */
+    protected $filters;
+    /** @var  ProjectModel */
+    protected $projectModel;
+    /** @var  Projects */
+    protected $projects;
+    /** @var  Reports */
+    protected $reports;
+    /** @var  Users */
+    protected $users;
+
+    public function __construct($url = null, $logger = null, $loggerFormatter = null)
     {
-        $this->client = new \GuzzleHttp\Client([
-            'base_url' => $url ?: self::BASE_URL,
-            'defaults' => [
-                'timeout' => 600,
-                'headers' => [
-                    'accept' => 'application/json',
-                    'content-type' => 'application/json; charset=utf-8'
-                ]
-            ]
+        $this->apiUrl = $url ?: self::API_URL;
+        if ($logger) {
+            $this->logger = $logger;
+        }
+        $this->loggerFormatter = $loggerFormatter ?: new MessageFormatter("{hostname} {req_header_User-Agent} - [{ts}] "
+            . "\"{method} {resource} {protocol}/{version}\" {code} {res_header_Content-Length}");
+        $this->initClient();
+    }
+
+    protected function initClient()
+    {
+        $handlerStack = ClientHandlerStack::create([
+            'backoffMaxTries' => self::RETRIES_COUNT,
         ]);
-        $retry = new RetrySubscriber([
-            'filter' => RetrySubscriber::createChainFilter([
-                RetrySubscriber::createCurlFilter(),
-                RetrySubscriber::createStatusFilter([500, 502, 504, 509]),
-            ])
+        $handlerStack->push(Middleware::cookies());
+        if ($this->logger) {
+            $handlerStack->push(Middleware::log($this->logger, $this->loggerFormatter));
+        }
+        $this->guzzle = new \GuzzleHttp\Client([
+            'base_uri' => $this->apiUrl,
+            'handler' => $handlerStack,
+            'cookies' => true
         ]);
-        $this->client->getEmitter()->attach($retry);
     }
 
-
-
-    /******************************************
-     * @section Users
-     *****************************************/
-
-    /**
-     * Gets user info from API
-     * @param $uid
-     * @return array
-     */
-    public function getUser($uid)
+    public function getUsername()
     {
-        return $this->request('GET', "/gdc/account/profile/{$uid}");
+        return $this->username;
     }
 
-    /**
-     * Gets info about currently logged-in user from API
-     * @return array
-     */
-    public function getCurrentUser()
+    public function getPassword()
     {
-        return $this->getUser('current');
+        return $this->password;
     }
 
-    /**
-     * Gets user id of currently logged-in user
-     * @return string
-     */
-    public function getCurrentUserId()
+    public function setLogData($data)
     {
-        $result = $this->getCurrentUser();
-        return self::getIdFromUri($result['accountSetting']['links']['self']);
+        $this->logData = $data;
     }
 
-    /**
-     * Creates user in domain
-     * @param $domain
-     * @param $email
-     * @param $password
-     * @param $firstName
-     * @param $lastName
-     * @param null $ssoProvider
-     * @return string
-     * @throws Exception
-     */
-    public function createUser($domain, $email, $password, $firstName, $lastName, $ssoProvider = null)
+    public function setLogger(LoggerInterface $logger)
     {
-        $uri = sprintf('/gdc/account/domains/%s/users', $domain);
-        $params = [
-            'accountSetting' => [
-                'login' => strtolower($email),
-                'email' => strtolower($email),
-                'password' => $password,
-                'verifyPassword' => $password,
-                'firstName' => $firstName,
-                'lastName' => $lastName,
-                'ssoProvider' => $ssoProvider
-            ],
-        ];
-
-        try {
-            $result = $this->request('POST', $uri, $params);
-            if (!isset($result['uri'])) {
-                throw new Exception("User '{$email}' cannot be created, result does not contain 'uri'", 0, null, $result);
-            }
-            return self::getIdFromUri($result['uri']);
-        } catch (Exception $e) {
-            $response = $e->getResponse();
-            if (isset($response['error']['errorClass']) && strpos($response['error']['errorClass'], 'LoginNameAlreadyRegisteredException') !== false) {
-                throw new Exception("User '{$email}' cannot be created, it already exists in another domain", $e->getCode(), $e, $response);
-            } else {
-                $error = isset($details['error']['message']) ? $details['error']['message'] : $e->getMessage();
-                throw new Exception("User '{$email}' cannot be created: {$error}", $e->getCode(), $e, $response);
-            }
-        }
+        $this->logger = $logger;
     }
 
-    /**
-     * Updates user info
-     * @param $uid
-     * @param $data
-     * @return array
-     */
-    public function updateUser($uid, array $data)
+    public function setApiUrl($url)
     {
-        $userData = $this->getUser($uid);
-        unset($userData['accountSetting']['login']);
-        unset($userData['accountSetting']['email']);
-        $userData['accountSetting'] = array_merge($userData['accountSetting'], $data);
-        return $this->request('PUT', '/gdc/account/profile/'.$uid, $userData);
+        $this->apiUrl = $url;
+        $this->initClient();
     }
 
-    /**
-     * Retrieves user id from email
-     * @param $email
-     * @param $domain
-     * @return bool|string
-     */
-    public function retrieveUserId($email, $domain)
+
+    public function getProjects()
     {
-        $result = $this->request('GET', "/gdc/account/domains/{$domain}/users?login={$email}");
-        if (!empty($result['accountSettings']['items'])
-            && count($result['accountSettings']['items'])
-            && !empty($result['accountSettings']['items'][0]['accountSetting']['links']['self'])
-        ) {
-            return self::getIdFromUri($result['accountSettings']['items'][0]['accountSetting']['links']['self']);
+        if (!$this->projects) {
+            $this->projects = new Projects($this);
         }
-        return false;
+        return $this->projects;
     }
 
-    /**
-     * Drops user
-     * @param $uid
-     * @return string
-     */
-    public function deleteUser($uid)
+    public function getProjectModel()
     {
-        return $this->request('DELETE', '/gdc/account/profile/' . $uid);
+        if (!$this->projectModel) {
+            $this->projectModel = new ProjectModel($this);
+        }
+        return $this->projectModel;
     }
 
-
-
-    /******************************************
-     * @section Projects
-     *****************************************/
-
-    /**
-     * Create project
-     * @param $name
-     * @param $authToken
-     * @param null $description
-     * @return string
-     * @throws Exception
-     */
-    public function createProject($name, $authToken, $description = null, $environment = null)
+    public function getUsers()
     {
-        $params = [
-            'project' => [
-                'content' => [
-                    'guidedNavigation' => 1,
-                    'driver' => 'Pg',
-                    'authorizationToken' => $authToken
-                ],
-                'meta' => [
-                    'title' => $name
-                ]
-            ]
-        ];
-        if ($description) {
-            $params['project']['meta']['summary'] = $description;
+        if (!$this->users) {
+            $this->users = new Users($this);
         }
-        if ($environment) {
-            $params['project']['content']['environment'] = $environment;
-        }
-        $result = $this->request('POST', '/gdc/projects', $params);
-
-        if (empty($result['uri'])) {
-            throw new Exception("Create project call failed", 0, null, $result);
-        }
-
-        $projectUri = $result['uri'];
-
-        // Wait until project is ready
-        $repeat = true;
-        $i = 1;
-        do {
-            sleep(self::WAIT_INTERVAL * ($i + 1));
-
-            $result = $this->request('GET', $projectUri);
-            if (isset($result['project']['content']['state']) && $result['project']['content']['state'] != 'DELETED') {
-                if ($result['project']['content']['state'] == 'ENABLED') {
-                    $repeat = false;
-                }
-            } else {
-                throw new Exception("Get project uri {$projectUri} after create project call failed", 0, null, $result);
-            }
-
-            $i++;
-        } while ($repeat);
-
-        return self::getIdFromUri($projectUri);
+        return $this->users;
     }
 
-    /**
-     * Get project info
-     *
-     * @param $pid
-     * @throws Exception
-     * @return array
-     */
-    public function getProject($pid)
+    public function getDatasets()
     {
-        return $this->request('GET', "/gdc/projects/{$pid}");
+        if (!$this->datasets) {
+            $this->datasets = new Datasets($this);
+        }
+        return $this->datasets;
     }
 
-    /**
-     * Clone project from other project
-     * @param $sourcePid
-     * @param $targetPid
-     * @param $includeData
-     * @param $includeUsers
-     * @throws Exception
-     * @return bool
-     */
-    public function cloneProject($sourcePid, $targetPid, $includeData = false, $includeUsers = false)
+    public function getFilters()
     {
-        $params = [
-            'exportProject' => [
-                'exportUsers' => $includeUsers,
-                'exportData' => $includeData
-            ]
-        ];
-        $result = $this->request('POST', "/gdc/md/{$sourcePid}/maintenance/export", $params);
-        if (empty($result['exportArtifact']['token']) || empty($result['exportArtifact']['status']['uri'])) {
-            throw new Exception('Clone export failed', 0, null, $result);
+        if (!$this->filters) {
+            $this->filters = new Filters($this);
         }
-
-        $this->pollTask($result['exportArtifact']['status']['uri']);
-
-        $result = $this->request('POST', "/gdc/md/{$targetPid}/maintenance/import", [
-            'importProject' => [
-                'token' => $result['exportArtifact']['token']
-            ]
-        ]);
-        if (empty($result['uri'])) {
-            throw new Exception('Clone import failed', 0, null, $result);
-        }
-
-        $this->pollTask($result['uri']);
+        return $this->filters;
     }
 
-    /**
-     * Delete project
-     * @param $pid
-     * @return array
-     */
-    public function deleteProject($pid)
+    public function getReports()
     {
-        return $this->request('DELETE', "/gdc/projects/{$pid}");
+        if (!$this->reports) {
+            $this->reports = new Reports($this);
+        }
+        return $this->reports;
     }
 
-
-
-    /******************************************
-     * @section Project Model
-     *****************************************/
-
-    /**
-     * Get LDM model of the project
-     * @param $pid
-     * @return array
-     * @throws Exception
-     */
-    public function getProjectModel($pid)
+    public function getDateDimensions()
     {
-        $result = $this->request('GET', "/gdc/projects/{$pid}/model/view");
-        $taskResult = $this->pollAsyncTask($result);
-        if (!isset($taskResult['projectModelView']['model'])) {
-            throw new Exception('Get Project Model async task returned wrong response', null, $taskResult);
+        if (!$this->dateDimensions) {
+            $this->dateDimensions = new DateDimensions($this);
         }
-        return $taskResult['projectModelView']['model'];
+        return $this->dateDimensions;
     }
 
-    /**
-     * Post model to model/diff API call and get maql commands needed to adjust the model accordingly
-     * @param $pid
-     * @param $model
-     * @return array
-     * @throws Exception
-     */
-    public function getUpdateMaqlForModelDiff($pid, $model)
+
+
+    public function get($uri, $params = [])
     {
-        $result = $this->request('POST', "/gdc/projects/{$pid}/model/diff", [
-            'diffRequest' => ['targetModel' => $model]
-        ]);
-        $taskResult = $this->pollAsyncTask($result);
-        if (isset($taskResult['details']['error']['validationErrors'])) {
-            $errors = [];
-            foreach ($taskResult['details']['error']['validationErrors'] as $err) {
-                $errors[] = vsprintf($err['validationError']['message'], $err['validationError']['parameters']);
-            }
-            throw new Exception('Project validation failed', null, $errors);
-        }
-        if (!isset($taskResult['projectModelDiff']['updateScripts'])) {
-            throw new Exception('Update Project Model async task returned wrong response', null, $taskResult);
-        }
-
-        // Choose less destructive maql which preserves data if possible
-        $lessDestructiveMaql = [];
-        $moreDestructiveMaql = [];
-        foreach ($taskResult['projectModelDiff']['updateScripts'] as $script) {
-            if ($script['updateScript']['preserveData'] && !$script['updateScript']['cascadeDrops']) {
-                $lessDestructiveMaql = $script['updateScript']['maqlDdlChunks'];
-            }
-            if (!count($lessDestructiveMaql) && !$script['updateScript']['preserveData'] && !$script['updateScript']['cascadeDrops']) {
-                $lessDestructiveMaql = $script['updateScript']['maqlDdlChunks'];
-            }
-            if (!$script['updateScript']['preserveData'] && $script['updateScript']['cascadeDrops']) {
-                $moreDestructiveMaql = $script['updateScript']['maqlDdlChunks'];
-            }
-            if (!count($moreDestructiveMaql) && $script['updateScript']['preserveData'] && $script['updateScript']['cascadeDrops']) {
-                $moreDestructiveMaql = $script['updateScript']['maqlDdlChunks'];
-            }
-        }
-
-        $description = [];
-        foreach ($taskResult['projectModelDiff']['updateOperations'] as $o) {
-            $description[] = vsprintf($o['updateOperation']['description'], $o['updateOperation']['parameters']);
-        }
-
-        return [
-            'moreDestructiveMaql' => $moreDestructiveMaql,
-            'lessDestructiveMaql' => $lessDestructiveMaql,
-            'description' => $description
-        ];
+        return $this->jsonRequest('GET', $uri, $params);
     }
 
-    public function updateModel($pid, $model, $dryRun = false)
+    public function post($uri, $params = [])
     {
-        $update = $this->getUpdateMaqlForModelDiff($pid, $model);
-        if ($dryRun) {
-            return $update;
-        } else {
-            if (count($update['lessDestructiveMaql'])) {
-                foreach ($update['lessDestructiveMaql'] as $i => $m) {
-                    try {
-                        $this->executeMaql($pid, $m);
-                    } catch (Exception $e) {
-                        if (!empty($update['moreDestructiveMaql'][$i])) {
-                            $m = $update['moreDestructiveMaql'][$i];
-                            $this->executeMaql($pid, $m);
-                        } else {
-                            throw $e;
-                        }
-                    }
-
-                    return ['description' => $update['description'], 'maql' => $m];
-                }
-            }
-            return false;
-        }
+        return $this->jsonRequest('POST', $uri, $params);
     }
 
-    /**
-     * Execute Maql asynchronously and wait for result
-     * @param $pid
-     * @param $maql
-     * @return array
-     * @throws Exception
-     */
-    public function executeMaql($pid, $maql)
+    public function put($uri, $params = [])
     {
-        $result = $this->request('POST', "/gdc/md/{$pid}/ldm/manage2", [
-            'manage' => ['maql' => $maql]
-        ]);
-
-        $pollLink = null;
-        if (isset($result['entries']) && count($result['entries'])) {
-            foreach ($result['entries'] as $entry) {
-                if (isset($entry['category']) && isset($entry['link']) && $entry['category'] == 'tasks-status') {
-                    $pollLink = $entry['link'];
-                    break;
-                }
-            }
-        }
-        if (!$pollLink) {
-            throw new Exception("Execute Maql did not return poll link: ", null, $result);
-        }
-
-        $try = 1;
-        do {
-            sleep(self::WAIT_INTERVAL * ($try + 1));
-            $taskResult = $this->request('GET', $pollLink);
-            if (!isset($taskResult['wTaskStatus']['status'])) {
-                throw new Exception('Execute Maql poll result has wrong format', null, $taskResult);
-            }
-
-            $try++;
-        } while (in_array($taskResult['wTaskStatus']['status'], ['PREPARED', 'RUNNING']));
-
-        if ($taskResult['wTaskStatus']['status'] == 'ERROR') {
-            $messages = isset($taskResponse['wTaskStatus']['messages']) ? $taskResponse['wTaskStatus']['messages'] : null;
-            throw new Exception('Execute Maql task returned errors', null, $messages);
-        }
-
-        return $taskResult;
+        return $this->jsonRequest('PUT', $uri, $params);
     }
 
-
-
-    /******************************************
-     * @section Common methods
-     *****************************************/
-
-    /**
-     * Process user login
-     * @param $username
-     * @param $password
-     * @throws Exception
-     */
-    public function login($username, $password)
+    public function delete($uri, $params = [])
     {
-        $this->username = $username;
-        $this->password = $password;
-
-        if (!$this->username || !$this->password) {
-            throw new Exception('GoodData API login failed, missing username or password');
-        }
-
-        try {
-            $response = $this->rawRequest('POST', '/gdc/account/login', [
-                'postUserLogin' => [
-                    'login' => $username,
-                    'password' => $password,
-                    'remember' => 0
-                ]
-            ]);
-        } catch (Exception $e) {
-            throw new Exception('GoodData API Login failed', $e);
-        }
-
-        if ($response) {
-            $this->authSst = self::findCookie($response->getHeader('Set-Cookie', true), 'GDCAuthSST');
-        }
-        if (!$this->authSst) {
-            throw new Exception('GoodData API login failed');
-        }
-
-        $this->refreshToken();
+        return $this->jsonRequest('DELETE', $uri, $params);
     }
 
-    /**
-     * Poll task uri and wait for its finish
-     * @param $uri
-     * @throws Exception
-     */
+    public function jsonRequest($method, $uri, $params = [])
+    {
+        $body = $this->request($method, $uri, $params)->getBody();
+        return json_decode($body, true);
+    }
+
     public function pollTask($uri)
     {
         $repeat = true;
-        $try = 0;
+        $i = 0;
         do {
-            sleep(self::WAIT_INTERVAL * ($try + 1));
-            $result = $this->request('GET', $uri);
+            sleep(self::WAIT_INTERVAL * ($i + 1));
+
+            $result = $this->get($uri);
             if (isset($result['taskState']['status'])) {
                 if (in_array($result['taskState']['status'], ['OK', 'ERROR', 'WARNING'])) {
                     $repeat = false;
                 }
             } else {
-                throw new Exception('Bad response', 0, null, $result);
+                throw Exception::unexpectedResponseError('Task polling failed', 'GET', $uri, $result);
             }
 
-            $try++;
+            $i++;
         } while ($repeat);
 
         if ($result['taskState']['status'] != 'OK') {
-            throw new Exception('Bad response', 0, null, $result);
+            throw Exception::error($uri, $result);
         }
     }
 
-    public function pollAsyncTask($result)
+    public function pollMaqlTask($uri)
     {
-        if (isset($result['asyncTask']['link']['poll'])) {
-            $try = 1;
-            do {
-                sleep(self::WAIT_INTERVAL * ($try + 1));
-                $taskResult = $this->request('GET', $result['asyncTask']['link']['poll']);
+        $try = 1;
+        do {
+            sleep(10 * $try);
+            $result = $this->get($uri);
 
-                if (!isset($taskResult['asyncTask']['link']['poll'])) {
-                    return $taskResult;
-                }
+            if (!isset($result['wTaskStatus']['status'])) {
+                throw Exception::unexpectedResponseError('Task polling failed', 'GET', $uri, $result);
+            }
 
-                $try++;
-            } while (true);
-        } else {
-            throw new Exception('Async task does not contain poll link: ', null, $result);
+            $try++;
+        } while (in_array($result['wTaskStatus']['status'], ['PREPARED', 'RUNNING']));
+
+        if ($result['wTaskStatus']['status'] == 'ERROR') {
+            throw Exception::error($uri, $result);
         }
     }
 
-    /**
-     * Check if API is available and not under maintenance
-     * @return bool
-     */
     public function ping()
     {
-        $errorCount = 0;
-        $request = $this->client->createRequest('GET', '/gdc/ping');
+        $curlErrorCount = 0;
         do {
             try {
-                $response = $this->client->send($request);
+                $response = $this->guzzle->request('GET', '/gdc/ping', self::DEFAULT_CLIENT_SETTINGS);
                 return $response->getStatusCode() != 503;
             } catch (ServerException $e) {
+                //@TODO Log to SAPI events? ($this->eventLogger is empty)
                 return false;
-            } catch (TransferException $e) {
-                $errorCount++;
+            } catch (ConnectException $e) {
+                $curlErrorCount++;
                 sleep(rand(1, 5));
             }
-        } while ($errorCount <= 5);
+        } while ($curlErrorCount <= 5);
+        return false;
+    }
+
+    public function getUserUploadUrl()
+    {
+        $data = $this->get('/gdc');
+        foreach ($data['about']['links'] as $r) {
+            if ($r['category'] == 'uploads') {
+                return $r['link'];
+            }
+        }
         return false;
     }
 
     /**
-     * Extracts user or project id from it's uri
-     * @param $uri
-     * @return string
+     * @return ResponseInterface
      */
-    public static function getIdFromUri($uri)
+    public function request($method, $uri, $params = [], $refreshToken = true, $headers = null, $filename = null)
     {
-        return substr($uri, strrpos($uri, '/')+1);
-    }
-
-    /**
-     * @param $method
-     * @param $uri
-     * @param array $params
-     * @param bool|true $refreshToken
-     * @return array
-     * @throws Exception
-     */
-    private function request($method, $uri, $params = [], $refreshToken = true)
-    {
-        if (!$this->authTt && $refreshToken) {
+        if ($refreshToken) {
             $this->refreshToken();
         }
 
-        $result = $this->rawRequest($method, $uri, $params);
-        return $result->json();
-    }
+        $startTime = time();
 
-    private function rawRequest($method, $uri, array $params = [])
-    {
-        $params = count($params) ? json_encode($params) : null;
-        $lastException = null;
+        $retriesCount = 1;
         do {
-            $request = $this->client->createRequest($method, $uri, [
-                'body' => $params,
-                'cookies' => [
-                    'GDCAuthSST' => $this->authSst,
-                    'GDCAuthTT' => $this->authTt
-                ]
-            ]);
             $isMaintenance = false;
 
-            try {
-                return $this->client->send($request);
+            $options = self::DEFAULT_CLIENT_SETTINGS;
 
+            if ($params) {
+                if ($method == 'GET' || $method == 'DELETE') {
+                    $options['query'] = $params;
+                } else {
+                    $options['json'] = $params;
+                }
+            }
+
+            if ($filename) {
+                $options['sink'] = $filename;
+            }
+
+            if ($headers) {
+                $options['headers'] = array_replace($options['headers'], $headers);
+            }
+
+            try {
+                $response = $this->guzzle->request($method, $uri, $options);
+
+                $this->log($uri, $method, $params, $response, time() - $startTime, $headers, $filename);
+                return $response;
             } catch (RequestException $e) {
-                $lastException = $e;
-                //@TODO handle exceptions
-                echo PHP_EOL.$e->getMessage().PHP_EOL.PHP_EOL;
-                echo $e->getRequest().PHP_EOL.PHP_EOL;
-                echo $e->getResponse().PHP_EOL.PHP_EOL;
+                $this->log($uri, $method, $params, $e->getResponse(), time() - $startTime, $headers, $filename);
+
+                if ($e->hasResponse()) {
+                    $response = $e->getResponse();
+                    $responseJson = json_decode($response->getBody(), true);
+                    switch ($e->getResponse()->getStatusCode()) {
+                        case 401:
+                            if ($uri == '/gdc/account/login') {
+                                throw Exception::error($uri, $responseJson, 401, $e);
+                            } else {
+                                $this->login($this->username, $this->password);
+                            }
+                            break;
+                        case 503:
+                            $isMaintenance = true;
+                            break;
+                        default:
+                            throw Exception::error($uri, $responseJson, $response->getStatusCode(), $e);
+                    }
+                }
+            } catch (\Exception $e) {
+                $this->log($uri, $method, $params, null, time() - $startTime, $headers, $filename);
+                throw $e;
             }
 
             if ($isMaintenance) {
                 sleep(rand(60, 600));
+            } else {
+                sleep(self::BACKOFF_INTERVAL * ($retriesCount + 1));
+                $retriesCount++;
+                $this->refreshToken();
+            }
+        } while ($isMaintenance || $retriesCount <= self::RETRIES_COUNT);
+
+        // Retries didn't help
+        $statusCode = !empty($response) ? $response->getStatusCode() : null;
+        $responseJson = !empty($response) ? $response->json() : null;
+        throw Exception::error($uri, $responseJson, $statusCode, !empty($e) ? $e : null);
+    }
+
+    public function getToFile($uri, $filename)
+    {
+        $this->refreshToken();
+        $startTime = time();
+
+        $options = self::DEFAULT_CLIENT_SETTINGS;
+        $options['sink'] = $filename;
+        $options['headers'] = array_replace($options['headers'], [
+            'accept' => 'text/csv',
+            'accept-charset' => 'utf-8'
+        ]);
+
+        $retriesCount = 1;
+        do {
+            $isMaintenance = false;
+
+            try {
+                $response = $this->guzzle->get($uri, $options);
+
+                $this->log($uri, 'GET', ['filename' => $filename], null, time() - $startTime);
+
+                if ($response->getStatusCode() == 200) {
+                    return $filename;
+                }
+            } catch (RequestException $e) {
+                $this->log($uri, 'GET', [], $e->getResponse(), time() - $startTime, $options['headers'], $filename);
+
+                if ($e->hasResponse()) {
+                    $response = $e->getResponse();
+                    $responseJson = json_decode($response->getBody(), true);
+                    switch ($e->getResponse()->getStatusCode()) {
+                        case 401:
+                            if ($uri == '/gdc/account/login') {
+                                throw Exception::error($uri, $responseJson, 401, $e);
+                            } else {
+                                $this->login($this->username, $this->password);
+                            }
+                            break;
+                        case 503:
+                            $isMaintenance = true;
+                            break;
+                        default:
+                            throw Exception::error($uri, $responseJson, $response->getStatusCode(), $e);
+                    }
+                }
+            } catch (\Exception $e) {
+                $this->log($uri, 'GET', [], null, time() - $startTime, $options['headers'], $filename);
+                throw $e;
             }
 
-        } while ($isMaintenance);
+            if ($isMaintenance) {
+                sleep(rand(60, 600));
+            } else {
+                sleep(self::BACKOFF_INTERVAL * ($retriesCount + 1));
+                $retriesCount++;
+                $this->refreshToken();
+            }
+        } while ($isMaintenance || $retriesCount <= self::RETRIES_COUNT);
 
-        $statusCode = $lastException ? $lastException->getResponse()->getStatusCode() : null;
-        $error = $lastException ? $lastException->getResponse()->getBody() : 'API Error';
-        throw new Exception($error, $statusCode, $lastException);
+        $this->logger->debug("Report export: downloading file timed out", [
+            'request' => [
+                'uri' => $uri,
+                'filename' => $filename,
+            ],
+            'statusCode' => !empty($response) ? $response->getStatusCode() : null,
+            'retries' => $retriesCount,
+            'isMaintenance' => $isMaintenance
+        ]);
+
+        return false;
+    }
+
+    public function login($username, $password)
+    {
+        $this->username = $username;
+        $this->password = $password;
+
+        try {
+            $this->request('POST', '/gdc/account/login', [
+                'postUserLogin' => [
+                    'login' => $this->username,
+                    'password' => $this->password,
+                    'remember' => 0
+                ]
+            ], false);
+        } catch (Exception $e) {
+            throw Exception::loginError($e);
+        }
+
+        $this->refreshToken();
     }
 
     public function refreshToken()
     {
         try {
-            $response = $this->rawRequest('GET', '/gdc/account/token', []);
+            $this->request('GET', '/gdc/account/token', [], false);
         } catch (Exception $e) {
-            throw new Exception('Refresh token failed', $e);
+            throw Exception::loginError($e);
         }
-
-        if ($response) {
-            $this->authTt = self::findCookie($response->getHeader('Set-Cookie', true), 'GDCAuthTT');
-        }
-        if (!$this->authTt) {
-            throw new Exception('Refresh token failed');
-        }
-        return $this->authTt;
     }
 
-    /**
-     * Utility function: Retrieves specified cookie from supplied response headers
-     * NB: Very basic parsing - ignores path, domain, expiry
-     *
-     * @param array $cookies
-     * @param $name
-     * @return string or null if specified cookie not found
-     * @author Jakub Nesetril
-     */
-    protected static function findCookie(array $cookies, $name)
-    {
-        $cookie = array_filter($cookies, function ($cookie) use ($name) {
-            return strpos($cookie, $name) === 0;
-        });
-        $cookie = reset($cookie);
-        if (empty($cookie)) {
-            return false;
+    protected function log(
+        $uri,
+        $method,
+        $params,
+        Response $response = null,
+        $duration = 0,
+        $headers = null,
+        $filename = null
+    ) {
+        if (!$this->logger) {
+            return;
         }
 
-        $cookie = explode('; ', $cookie);
-        $cookie = reset($cookie);
-        return substr($cookie, strpos($cookie, '=') + 1);
+        foreach ($params as $k => &$v) {
+            if ($k == 'password') {
+                $v = '***';
+            }
+        }
+
+        $data = [
+            'request' => [
+                'params' => $params,
+                'response' => $response ? [
+                    'status' => $response->getStatusCode(),
+                    'body' => (string)$response->getBody()
+                ] : null
+            ],
+            'duration' => $duration,
+            'pid' => getmypid()
+        ];
+        if ($headers) {
+            $data['request']['headers'] = $headers;
+        }
+        if ($filename) {
+            $data['request']['filename'] = $filename;
+        }
+
+        $this->logger->debug($method . ' ' . $uri, array_merge($this->logData, $data));
     }
 }

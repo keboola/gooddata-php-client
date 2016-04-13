@@ -25,7 +25,7 @@
             <directory>vendor</directory>
         </blacklist>
     </filter>
-    <logging>
+    <!--logging>
         <log type="coverage-clover" target="build/logs/clover.xml"/>
-    </logging>
+    </logging-->
 </phpunit>
