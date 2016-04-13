@@ -20,6 +20,7 @@
         "phpunit/phpunit": "^5",
         "phpunit/php-code-coverage": "^3",
         "squizlabs/php_codesniffer": "~2.5",
+        "codeclimate/php-test-reporter": "dev-master",
         "monolog/monolog": "~1.11",
         "keboola/php-temp": "0.1.3"
     },
