@@ -8,6 +8,7 @@ namespace Keboola\GoodData\Test;
 
 use Keboola\GoodData\Client;
 use Keboola\GoodData\Exception;
+use Keboola\GoodData\Projects;
 use Keboola\GoodData\TimeDimension;
 use Keboola\GoodData\WebDav;
 use Keboola\Temp\Temp;
@@ -16,6 +17,8 @@ use Monolog\Handler\SyslogHandler;
 use Monolog\Handler\SyslogUdpHandler;
 use Monolog\Logger;
 use Psr\Log\LoggerInterface;
+
+register_shutdown_function(array('\Keboola\GoodData\Test\Helper', 'cleanUpProjects'));
 
 class Helper
 {
@@ -198,7 +201,7 @@ class Helper
         $attribute1 = self::getClient()->getDatasets()->getUriForIdentifier($pid, "label.categories.id");
         $attribute2 = self::getClient()->getDatasets()->getUriForIdentifier($pid, "label.categories.name");
 
-        $definition = '
+        $definition = json_decode('
 {
    "reportDefinition" : {
       "content" : {
@@ -238,7 +241,7 @@ class Helper
          "category" : "reportDefinition"
       }
    }
-}';
+}', true);
         $result = self::getClient()->post("/gdc/md/$pid/obj", $definition);
         $result = self::getClient()->post("/gdc/md/$pid/obj", [
             "report" => [
@@ -282,5 +285,23 @@ class Helper
 
         $model = json_decode(file_get_contents(__DIR__.'/data/model.json'), true);
         $client->getProjectModel()->updateProject($pid, $model);
+    }
+
+    public static function cleanUpProjects()
+    {
+        // Cleanup all test projects with same prefix
+        $client = self::getClient();
+        foreach ($client->getUsers()->getProjectsYield() as $projects) {
+            foreach ($projects as $project) {
+                $pid = Projects::getPidFromUri($project['project']['links']['self']);
+                if (strpos($project['project']['meta']['title'], KBGDC_PROJECTS_PREFIX) === 0) {
+                    try {
+                        $client->getProjects()->deleteProject($pid);
+                    } catch (Exception $e) {
+                        //Ignore errors
+                    }
+                }
+            }
+        }
     }
 }

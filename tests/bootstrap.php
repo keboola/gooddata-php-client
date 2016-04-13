@@ -36,9 +36,6 @@ defined('KBGDC_AUTH_TOKEN')
 defined('KBGDC_PAPERTRAIL_PORT')
 || define('KBGDC_PAPERTRAIL_PORT', getenv('KBGDC_PAPERTRAIL_PORT') ? getenv('KBGDC_PAPERTRAIL_PORT') : null);
 
-defined('KBGDC_PROJECTS_PREFIX')
-|| define('KBGDC_PROJECTS_PREFIX', getenv('KBGDC_PROJECTS_PREFIX') ? getenv('KBGDC_PROJECTS_PREFIX') : '[test] ');
-
 defined('KBGDC_USERS_DOMAIN')
 || define('KBGDC_USERS_DOMAIN', getenv('KBGDC_USERS_DOMAIN') ? getenv('KBGDC_USERS_DOMAIN') : 'gooddata.test.com');
 
@@ -48,6 +45,9 @@ defined('KBGDC_SSO_PROVIDER')
 defined('KBGDC_OTHER_USERS_DOMAIN')
 || define('KBGDC_OTHER_USERS_DOMAIN', getenv('KBGDC_OTHER_USERS_DOMAIN')
     ? getenv('KBGDC_OTHER_USERS_DOMAIN') : 'gooddata');
+
+
+define('KBGDC_PROJECTS_PREFIX', '[test-'.uniqid('', true).'] ');
 
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/Helper.php';
