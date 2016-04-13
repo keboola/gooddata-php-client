@@ -4,16 +4,16 @@ ini_set('display_errors', true);
 error_reporting(E_ALL);
 date_default_timezone_set('Europe/Prague');
 
-set_error_handler(
-    function ($errno, $errstr, $errfile, $errline, array $errcontext)
-    {
-        // error was suppressed with the @-operator
-        if (0 === error_reporting()) {
-            return false;
-        }
-        throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
+set_error_handler('exceptions_error_handler');
+function exceptions_error_handler($severity, $message, $filename, $lineno)
+{
+    if (error_reporting() == 0) {
+        return;
     }
-);
+    if (error_reporting() & $severity) {
+        throw new ErrorException($message, 0, $severity, $filename, $lineno);
+    }
+}
 
 defined('KBGDC_APP_NAME')
 || define('KBGDC_APP_NAME', getenv('KBGDC_APP_NAME') ? getenv('KBGDC_APP_NAME') : 'gooddata-php-client');

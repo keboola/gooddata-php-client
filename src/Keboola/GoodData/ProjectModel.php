@@ -42,7 +42,6 @@ class ProjectModel
 
                 $try++;
             } while (true);
-
         } else {
             throw Exception::unexpectedResponseError('Model view failed', 'GET', $uri, $result);
         }
@@ -110,7 +109,6 @@ class ProjectModel
 
                 $try++;
             } while (true);
-
         } else {
             throw Exception::unexpectedResponseError(
                 'Polling of Model diff could not be started',

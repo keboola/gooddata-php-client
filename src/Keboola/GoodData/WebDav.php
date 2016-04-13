@@ -132,7 +132,6 @@ class WebDav
                             $jsonResult['error']['parameters']
                         );
                     }
-
                 }
             }
         }
