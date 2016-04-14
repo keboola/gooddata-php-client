@@ -42,6 +42,9 @@ defined('KBGDC_USERS_DOMAIN')
 defined('KBGDC_SSO_PROVIDER')
 || define('KBGDC_SSO_PROVIDER', getenv('KBGDC_SSO_PROVIDER') ? getenv('KBGDC_SSO_PROVIDER') : null);
 
+defined('KBGDC_SSO_KEY')
+|| define('KBGDC_SSO_KEY', getenv('KBGDC_SSO_KEY') ? base64_decode(getenv('KBGDC_SSO_KEY')) : null);
+
 defined('KBGDC_OTHER_USERS_DOMAIN')
 || define('KBGDC_OTHER_USERS_DOMAIN', getenv('KBGDC_OTHER_USERS_DOMAIN')
     ? getenv('KBGDC_OTHER_USERS_DOMAIN') : 'gooddata');
