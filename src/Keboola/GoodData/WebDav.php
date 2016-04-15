@@ -79,7 +79,7 @@ class WebDav
         }
     }
 
-    public function listFiles($folderName, $relative = false, $extensions = [])
+    public function listFiles($folderName, $extensions = [])
     {
         $result = $this->request(
             $folderName,
@@ -103,10 +103,9 @@ class WebDav
             $response->registerXPathNamespace('D', 'urn:DAV');
             $href = $response->xpath('D:href');
             $file = pathinfo((string)$href[0]);
-            if (isset($file['extension'])) {
-                if (!count($extensions) || in_array($file['extension'], $extensions)) {
-                    $list[] = $relative ? $file['basename'] : (string)$href[0];
-                }
+            if ($folderName != $file['basename']
+                && (!count($extensions) || (isset($file['extension']) && in_array($file['extension'], $extensions)))) {
+                $list[] = $file['basename'];
             }
         }
 
@@ -125,32 +124,30 @@ class WebDav
                 if (isset($jsonResult['error']['component'])
                     && $jsonResult['error']['component'] != 'GDC::DB2::ETL'
                     && isset($jsonResult['error']['message'])) {
-                    $errors['upload_status.json'] = $jsonResult['error']['message'];
+
                     if (isset($jsonResult['error']['parameters'])) {
-                        $errors['upload_status.json'] = vsprintf(
-                            $errors['upload_status.json'],
+                        $jsonResult['error']['message'] = vsprintf(
+                            $jsonResult['error']['message'],
                             $jsonResult['error']['parameters']
                         );
                     }
+                    $errors['upload_status.json'] = $jsonResult['error']['message'];
                 }
             }
         }
 
-        foreach ($this->listFiles($folderName, true, ['log']) as $file) {
-            $errors[$file] = $this->get($folderName . '/' . $file);
+        foreach ($this->listFiles($folderName, ['log']) as $file) {
+            $errors[$file] = $this->get("$folderName/$file");
         }
 
         if (count($errors)) {
             $i = 0;
-            file_put_contents($logFile, '{' . PHP_EOL, FILE_APPEND);
+            $result = [];
             foreach ($errors as $f => $e) {
-                file_put_contents($logFile, '"' . $f . '" : ' . PHP_EOL, FILE_APPEND);
-                file_put_contents($logFile, $e . PHP_EOL . PHP_EOL . PHP_EOL, FILE_APPEND);
-                if ($i != count($errors)-1) {
-                    file_put_contents($logFile, ',' . PHP_EOL, FILE_APPEND);
-                }
+                $json = json_decode($e, true);
+                $result[$f] = $json ?: $e;
             }
-            file_put_contents($logFile, '}' . PHP_EOL, FILE_APPEND);
+            file_put_contents($logFile, json_encode($result, JSON_PRETTY_PRINT));
 
             return true;
         } else {
