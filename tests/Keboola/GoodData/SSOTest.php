@@ -7,6 +7,7 @@
 namespace Keboola\GoodData\Test;
 
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\Request;
 use Keboola\GoodData\SSO;
 
@@ -33,9 +34,18 @@ class SSOTest extends \PHPUnit_Framework_TestCase
             'handler' => $stack,
             \GuzzleHttp\RequestOptions::ALLOW_REDIRECTS => true
         ]);
-        $client->request('GET', $ssoLink, ['headers' => [
-            'Accept' => 'application/json'
-        ]]);
+        try {
+            $client->request('GET', $ssoLink, ['headers' => [
+                'Accept' => 'application/json'
+            ]]);
+        } catch (RequestException $e) {
+            if ($e->hasResponse()) {
+                $response = $e->getResponse()->getBody();
+                $this->fail($response);
+            } else {
+                $this->fail($e->getMessage());
+            }
+        }
         /** @var Request $lastRequest */
         $result = $lastRequest->getUri()->__toString();
         $this->assertStringEndsWith($targetUrl, urldecode($result));

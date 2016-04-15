@@ -9,6 +9,7 @@ namespace Keboola\GoodData;
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Exception\ServerException;
+use GuzzleHttp\HandlerStack;
 use GuzzleHttp\MessageFormatter;
 use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Response;
@@ -81,9 +82,34 @@ class Client
 
     protected function initClient()
     {
-        $handlerStack = ClientHandlerStack::create([
-            'backoffMaxTries' => self::RETRIES_COUNT,
-        ]);
+        $handlerStack = HandlerStack::create();
+
+        // @TODO so far retries are handled by request() method itself
+        /*$handlerStack->push(Middleware::retry(
+            function ($retries, RequestInterface $request, ResponseInterface $response = null, $error = null) {
+                return $response && $response->getStatusCode() == 503;
+            },
+            function ($retries) {
+                return rand(60, 600) * 1000;
+            }
+        ));
+        $handlerStack->push(Middleware::retry(
+            function ($retries, RequestInterface $request, ResponseInterface $response = null, $error = null) {
+                if ($retries >= self::RETRIES_COUNT) {
+                    return false;
+                } elseif ($response && $response->getStatusCode() > 499) {
+                    return true;
+                } elseif ($error) {
+                    return true;
+                } else {
+                    return false;
+                }
+            },
+            function ($retries) {
+                return (int) pow(2, $retries - 1) * 1000;
+            }
+        ));*/
+
         $handlerStack->push(Middleware::cookies());
         if ($this->logger) {
             $handlerStack->push(Middleware::log($this->logger, $this->loggerFormatter));
