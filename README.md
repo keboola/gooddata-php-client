@@ -1,7 +1,10 @@
 # GoodData API PHP client by Keboola
-[![Latest Stable Version](https://poser.pugx.org/keboola/gooddata-php-client/v/stable.svg)](https://packagist.org/packages/keboola/gooddata-php-client)
-[![License](https://poser.pugx.org/keboola/gooddata-php-client/license.svg)](https://packagist.org/packages/keboola/gooddata-php-client)
-[![Total Downloads](https://poser.pugx.org/keboola/gooddata-php-client/downloads.svg)](https://packagist.org/packages/keboola/gooddata-php-client)
+[![Latest Stable Version](https://poser.pugx.org/keboola/gooddata-php-client/v/stable.svg)](https://packagist.org/packages/keboola/gooddata-php-client) [![License](https://poser.pugx.org/keboola/gooddata-php-client/license.svg)](https://packagist.org/packages/keboola/gooddata-php-client) [![Total Downloads](https://poser.pugx.org/keboola/gooddata-php-client/downloads.svg)](https://packagist.org/packages/keboola/gooddata-php-client)
+
+## Status
+
+[![Build Status](https://travis-ci.org/keboola/gooddata-php-client.svg)](https://travis-ci.org/keboola/gooddata-php-client) [![Code Climate](https://codeclimate.com/github/keboola/gooddata-php-client/badges/gpa.svg)](https://codeclimate.com/github/keboola/gooddata-php-client) [![Test Coverage](https://codeclimate.com/github/keboola/gooddata-php-client/badges/coverage.svg)](https://codeclimate.com/github/keboola/gooddata-php-client/coverage)
+
 
 ## Installation
 
@@ -19,8 +22,7 @@ mv ./composer.phar ~/bin/composer # or /usr/local/bin/composer
 ```json
 {
     "require": {
-        "php" : ">=5.4.0",
-        "keboola/gooddata-php-client": "~0.1"
+        "keboola/gooddata-php-client": "~1.0"
     }
 }
 ```
@@ -44,8 +46,8 @@ Read more in [Composer documentation](http://getcomposer.org/doc/01-basic-usage.
 ```php
 require 'vendor/autoload.php';
 
-$client = new \Keboola\GoodData\Client();
-$client->login(GOODDATA_USERNAME, GOODDATA_PASSWORD);
+$client = new \Keboola\GoodData\Client(KBGDC_API_URL);
+$client->login(KBGDC_USERNAME, KBGDC_PASSWORD);
 
-$pid = $client->createProject('Project name', GOODDATA_AUTH_TOKEN);
+$pid = $client->getProjects()->createProject('Project name', KBGDC_AUTH_TOKEN);
 ```
