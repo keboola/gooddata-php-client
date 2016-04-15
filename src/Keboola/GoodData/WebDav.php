@@ -124,7 +124,6 @@ class WebDav
                 if (isset($jsonResult['error']['component'])
                     && $jsonResult['error']['component'] != 'GDC::DB2::ETL'
                     && isset($jsonResult['error']['message'])) {
-
                     if (isset($jsonResult['error']['parameters'])) {
                         $jsonResult['error']['message'] = vsprintf(
                             $jsonResult['error']['message'],
