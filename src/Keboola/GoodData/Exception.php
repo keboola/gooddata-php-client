@@ -87,6 +87,7 @@ class Exception extends \Exception
 
     public function getData()
     {
-        return json_decode($this->message, true);
+        $json = json_decode($this->message, true);
+        return $json ?: [];
     }
 }
