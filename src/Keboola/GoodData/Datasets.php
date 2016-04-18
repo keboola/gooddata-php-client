@@ -86,74 +86,62 @@ class Datasets
 
     public function loadData($pid, $dirName)
     {
-        $uri = "/gdc/md/$pid/etl/pull";
+        $uri = "/gdc/md/$pid/etl/pull2";
         $result = $this->client->post($uri, ['pullIntegration' => $dirName]);
 
-        if (isset($result['pullTask']['uri'])) {
+        if (isset($result['pull2Task']['links']['poll'])) {
             $try = 1;
             do {
                 sleep(10 * $try);
-                $taskResponse = $this->client->get($result['pullTask']['uri']);
+                $taskResponse = $this->client->get($result['pull2Task']['links']['poll']);
 
-                if (!isset($taskResponse['taskStatus'])) {
+                if (!isset($taskResponse['wTaskStatus']['status'])) {
                     throw Exception::unexpectedResponseError(
                         'ETL task could not be checked',
                         'GET',
-                        $result['pullTask']['uri'],
+                        $result['pull2Task']['links']['poll'],
                         $taskResponse
                     );
                 }
 
                 $try++;
-            } while (in_array($taskResponse['taskStatus'], ['PREPARED', 'RUNNING']));
+            } while ($taskResponse['wTaskStatus']['status'] == 'RUNNING');
 
-            // Gather data about upload
-            $uploadInfo = [];
-            $taskId = substr($result['pullTask']['uri'], strrpos($result['pullTask']['uri'], '/')+1);
-            if (strpos($taskId, ':') !== false) {
-                $taskIds = explode(':', $taskId);
-                array_shift($taskIds);
-                array_shift($taskIds);
-                foreach ($taskIds as $taskId) {
-                    $uploadInfo[] = $this->client->get("/gdc/md/$pid/data/upload/$taskId");
-                }
-            } else {
-                $uploadInfo[] = $this->client->get("/gdc/md/$pid/data/upload/$taskId");
-            }
-
-            if ($taskResponse['taskStatus'] == 'ERROR' || $taskResponse['taskStatus'] == 'WARNING') {
-                // Find upload error message
-                foreach ($uploadInfo as $upload) {
-                    if (isset($upload['dataUpload']['status']) && $upload['dataUpload']['status'] == 'ERROR') {
-                        $dataset = $this->client->get($upload['dataUpload']['etlInterface']);
-                        throw Exception::error(
-                            $result['pullTask']['uri'],
-                            "Data load of dataset {$dataset['dataSet']['meta']['title']} failed. "
-                                . (isset($upload['dataUpload']['msg'])? $upload['dataUpload']['msg'] : '')
-                                . json_encode($uploadInfo),
-                            400
-                        );
+            if ($taskResponse['wTaskStatus']['status'] == 'ERROR') {
+                $errors = [];
+                if (isset($taskResponse['messages'])) {
+                    foreach ($taskResponse['messages'] as $m) {
+                        if (isset($m['error'])) {
+                            $errors[] = Exception::parseMessage($m['error']);
+                        }
                     }
                 }
+                throw new Exception($errors);
             }
-
-            return $uploadInfo;
+            return isset($taskResponse['messages']) ? $taskResponse['messages'] : [];
         } else {
             throw Exception::unexpectedResponseError('ETL task failed', 'POST', $uri, $result);
         }
     }
 
-    public static function getDataLoadManifest($definition, $incrementalLoad = false, $useDateFacts = false)
-    {
+    public static function getDataLoadManifest(
+        $title, 
+        $identifier = null, 
+        array $columns, 
+        $incrementalLoad = false, 
+        $useDateFacts = false
+    ) {
+        if (!$identifier) {
+            $identifier = Identifiers::getDatasetId($title);
+        }
         $manifest = [
             'dataSetSLIManifest' => [
-                'file' => strtolower($definition['tableId']) . '.csv',
-                'dataSet' => !empty($definition['identifier']) ? $definition['identifier']
-                    : Identifiers::getDatasetId($definition['tableId']),
+                'file' => "$identifier.csv",
+                'dataSet' => $identifier,
                 'parts' => []
             ]
         ];
-        foreach ($definition['columns'] as $columnName => $column) {
+        foreach ($columns as $columnName => $column) {
             if (!isset($column['type'])) {
                 continue;
             }
@@ -164,7 +152,7 @@ class Datasets
                         'columnName' => $columnName,
                         'populates' => [
                             !empty($column['identifierLabel']) ? $column['identifierLabel']
-                                : Identifiers::getLabelId($definition['tableId'], $columnName)
+                                : Identifiers::getLabelId($title, $columnName)
                         ],
                         'mode' => $incrementalLoad ? 'INCREMENTAL' : 'FULL',
                         'referenceKey' => 1
@@ -175,7 +163,7 @@ class Datasets
                         'columnName' => $columnName,
                         'populates' => [
                             !empty($column['identifier']) ? $column['identifier']
-                                : Identifiers::getFactId($definition['tableId'], $columnName)
+                                : Identifiers::getFactId($title, $columnName)
                         ],
                         'mode' => $incrementalLoad ? 'INCREMENTAL' : 'FULL'
                     ];
@@ -186,13 +174,13 @@ class Datasets
                         'columnName' => $columnName,
                         'populates' => [
                             !empty($column['identifier']) ? $column['identifier']
-                                : Identifiers::getRefLabelId($definition['tableId'], $column['reference'], $columnName)
+                                : Identifiers::getRefLabelId($title, $column['reference'], $columnName)
                         ],
                         'mode' => $incrementalLoad ? 'INCREMENTAL' : 'FULL'
                     ];
                     break;
                 case 'REFERENCE':
-                    $identifier = !empty($column['schemaReferenceConnectionLabel'])
+                    $refIdentifier = !empty($column['schemaReferenceConnectionLabel'])
                         ? $column['schemaReferenceConnectionLabel'] : (!empty($column['identifier'])
                             ? $column['identifier'] : sprintf(
                                 'label.%s.%s',
@@ -202,7 +190,7 @@ class Datasets
                     $manifest['dataSetSLIManifest']['parts'][] = [
                         'columnName' => $columnName,
                         'populates' => [
-                            $identifier
+                            $refIdentifier
                         ],
                         'mode' => $incrementalLoad ? 'INCREMENTAL' : 'FULL',
                         'referenceKey' => 1
@@ -230,7 +218,7 @@ class Datasets
                             'columnName' => $columnName . '_dt',
                             'populates' => [
                                 !empty($column['identifierDateFact']) ? $column['identifierDateFact']
-                                    : Identifiers::getDateFactId($definition['tableId'], $columnName)
+                                    : Identifiers::getDateFactId($title, $columnName)
                             ],
                             'mode' => $incrementalLoad ? 'INCREMENTAL' : 'FULL'
                         ];
@@ -240,7 +228,7 @@ class Datasets
                             'columnName' => $columnName . '_tm',
                             'populates' => [
                                 !empty($column['identifierTimeFact']) ? $column['identifierTimeFact']
-                                    : TimeDimension::getTimeFactIdentifier($definition['tableId'], $columnName)
+                                    : TimeDimension::getTimeFactIdentifier($title, $columnName)
                             ],
                             'mode' => $incrementalLoad ? 'INCREMENTAL' : 'FULL'
                         ];
