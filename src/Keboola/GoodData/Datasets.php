@@ -125,10 +125,10 @@ class Datasets
     }
 
     public static function getDataLoadManifest(
-        $title, 
-        $identifier = null, 
-        array $columns, 
-        $incrementalLoad = false, 
+        $title,
+        $identifier = null,
+        array $columns = [],
+        $incrementalLoad = false,
         $useDateFacts = false
     ) {
         if (!$identifier) {
