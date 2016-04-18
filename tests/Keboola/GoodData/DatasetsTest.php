@@ -64,7 +64,7 @@ class DatasetsTest extends AbstractClientTest
                 'schemaReference' => 'dataset.categories'
             ],
             'date' => [
-                'identifier' => 'keboola.date1',
+                'identifier' => 'date1.keboola',
                 'type' => 'DATE',
                 'format' => 'yyyy-MM-dd',
                 'template' => 'keboola',
