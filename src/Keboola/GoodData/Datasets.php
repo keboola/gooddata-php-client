@@ -208,15 +208,12 @@ class Datasets
                             "Configuration of column $columnName is missing 'identifier'"
                         );
                     }
-                    if (!isset($column['identifierDimension'])) {
-                        throw Exception::configurationError(
-                            "Configuration of column $columnName is missing 'identifierDimension'"
-                        );
-                    }
                     $manifest['dataSetSLIManifest']['parts'][] = [
                         'columnName' => $columnName,
                         'populates' => [
-                            sprintf('%s.date.mmddyyyy', $column['identifier'])
+                            sprintf('%s.date.mmddyyyy', $column['identifier']
+                                . (!empty($column['template'] && strtolower($column['template']) != 'gooddata')
+                                    ? '.' . strtolower($column['template']) : null))
                         ],
                         'constraints' => [
                             'date' => (string)$column['format']
@@ -254,7 +251,7 @@ class Datasets
                         $manifest['dataSetSLIManifest']['parts'][] = [
                             'columnName' => $columnName . '_id',
                             'populates' => [
-                                sprintf('label.time.second.of.day.%s', $column['identifierDimension'])
+                                sprintf('label.time.second.of.day.%s', $column['identifier'])
                             ],
                             'mode' => $incrementalLoad ? 'INCREMENTAL' : 'FULL',
                             'referenceKey' => 1
