@@ -59,6 +59,11 @@ class Exception extends \Exception
         return new static($message, $code, $previous);
     }
 
+    public static function configurationError($message)
+    {
+        return new static($message);
+    }
+
     public static function parseMessage($message)
     {
         if (isset($message['message'])) {

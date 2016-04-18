@@ -125,15 +125,11 @@ class Datasets
     }
 
     public static function getDataLoadManifest(
-        $title,
-        $identifier = null,
-        array $columns = [],
+        $identifier,
+        array $columns,
         $incrementalLoad = false,
         $useDateFacts = false
     ) {
-        if (!$identifier) {
-            $identifier = Identifiers::getDatasetId($title);
-        }
         $manifest = [
             'dataSetSLIManifest' => [
                 'file' => "$identifier.csv",
@@ -148,64 +144,79 @@ class Datasets
             switch ($column['type']) {
                 case 'CONNECTION_POINT':
                 case 'ATTRIBUTE':
+                    if (!isset($column['identifierLabel'])) {
+                        throw Exception::configurationError(
+                            "Configuration of column $columnName is missing 'identifierLabel'"
+                        );
+                    }
                     $manifest['dataSetSLIManifest']['parts'][] = [
                         'columnName' => $columnName,
                         'populates' => [
-                            !empty($column['identifierLabel']) ? $column['identifierLabel']
-                                : Identifiers::getLabelId($title, $columnName)
+                            $column['identifierLabel']
                         ],
                         'mode' => $incrementalLoad ? 'INCREMENTAL' : 'FULL',
                         'referenceKey' => 1
                     ];
                     break;
                 case 'FACT':
+                    if (!isset($column['identifier'])) {
+                        throw Exception::configurationError(
+                            "Configuration of column $columnName is missing 'identifier'"
+                        );
+                    }
                     $manifest['dataSetSLIManifest']['parts'][] = [
                         'columnName' => $columnName,
                         'populates' => [
-                            !empty($column['identifier']) ? $column['identifier']
-                                : Identifiers::getFactId($title, $columnName)
+                            $column['identifier']
                         ],
                         'mode' => $incrementalLoad ? 'INCREMENTAL' : 'FULL'
                     ];
                     break;
                 case 'LABEL':
                 case 'HYPERLINK':
+                    if (!isset($column['identifier'])) {
+                        throw Exception::configurationError(
+                            "Configuration of column $columnName is missing 'identifier'"
+                        );
+                    }
                     $manifest['dataSetSLIManifest']['parts'][] = [
                         'columnName' => $columnName,
                         'populates' => [
-                            !empty($column['identifier']) ? $column['identifier']
-                                : Identifiers::getRefLabelId($title, $column['reference'], $columnName)
+                            $column['identifier']
                         ],
                         'mode' => $incrementalLoad ? 'INCREMENTAL' : 'FULL'
                     ];
                     break;
                 case 'REFERENCE':
-                    $refIdentifier = !empty($column['schemaReferenceConnectionLabel'])
-                        ? $column['schemaReferenceConnectionLabel'] : (!empty($column['identifier'])
-                            ? $column['identifier'] : sprintf(
-                                'label.%s.%s',
-                                Identifiers::getIdentifier($column['schemaReference']),
-                                Identifiers::getIdentifier($column['reference'])
-                            ));
+                    if (!isset($column['schemaReferenceConnectionLabel'])) {
+                        throw Exception::configurationError(
+                            "Configuration of column $columnName is missing 'schemaReferenceConnectionLabel'"
+                        );
+                    }
                     $manifest['dataSetSLIManifest']['parts'][] = [
                         'columnName' => $columnName,
                         'populates' => [
-                            $refIdentifier
+                            $column['schemaReferenceConnectionLabel']
                         ],
                         'mode' => $incrementalLoad ? 'INCREMENTAL' : 'FULL',
                         'referenceKey' => 1
                     ];
                     break;
                 case 'DATE':
-                    $dimensionName = Identifiers::getIdentifier($column['dateDimension']);
+                    if (!isset($column['identifier'])) {
+                        throw Exception::configurationError(
+                            "Configuration of column $columnName is missing 'identifier'"
+                        );
+                    }
+                    if (!isset($column['identifierDimension'])) {
+                        throw Exception::configurationError(
+                            "Configuration of column $columnName is missing 'identifierDimension'"
+                        );
+                    }
                     $manifest['dataSetSLIManifest']['parts'][] = [
                         'columnName' => $columnName,
                         'populates' => [
-                            sprintf('%s.date.mmddyyyy', !empty($column['identifier'])
-                                ? $column['identifier']
-                                : ($dimensionName
-                                    . (!empty($column['template'] && strtolower($column['template']) != 'gooddata')
-                                        ? '.' . strtolower($column['template']) : null)))
+                            sprintf('%s.date.mmddyyyy', $column['identifier'])
                         ],
                         'constraints' => [
                             'date' => (string)$column['format']
@@ -214,28 +225,36 @@ class Datasets
                         'referenceKey' => 1
                     ];
                     if ($useDateFacts) {
+                        if (!isset($column['identifierDateFact'])) {
+                            throw Exception::configurationError(
+                                "Configuration of column $columnName is missing 'identifierDateFact'"
+                            );
+                        }
                         $manifest['dataSetSLIManifest']['parts'][] = [
                             'columnName' => $columnName . '_dt',
                             'populates' => [
-                                !empty($column['identifierDateFact']) ? $column['identifierDateFact']
-                                    : Identifiers::getDateFactId($title, $columnName)
+                                $column['identifierDateFact']
                             ],
                             'mode' => $incrementalLoad ? 'INCREMENTAL' : 'FULL'
                         ];
                     }
                     if (!empty($column['includeTime'])) {
+                        if (!isset($column['identifierTimeFact'])) {
+                            throw Exception::configurationError(
+                                "Configuration of column $columnName is missing 'identifierTimeFact'"
+                            );
+                        }
                         $manifest['dataSetSLIManifest']['parts'][] = [
                             'columnName' => $columnName . '_tm',
                             'populates' => [
-                                !empty($column['identifierTimeFact']) ? $column['identifierTimeFact']
-                                    : TimeDimension::getTimeFactIdentifier($title, $columnName)
+                                $column['identifierTimeFact']
                             ],
                             'mode' => $incrementalLoad ? 'INCREMENTAL' : 'FULL'
                         ];
                         $manifest['dataSetSLIManifest']['parts'][] = [
                             'columnName' => $columnName . '_id',
                             'populates' => [
-                                sprintf('label.time.second.of.day.%s', $dimensionName)
+                                sprintf('label.time.second.of.day.%s', $column['identifierDimension'])
                             ],
                             'mode' => $incrementalLoad ? 'INCREMENTAL' : 'FULL',
                             'referenceKey' => 1

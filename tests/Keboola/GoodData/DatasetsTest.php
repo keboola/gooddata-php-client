@@ -44,14 +44,17 @@ class DatasetsTest extends AbstractClientTest
     
     public function testGetDataLoadManifest()
     {
-        $result = Datasets::getDataLoadManifest('Products', null, [
+        $result = Datasets::getDataLoadManifest('dataset.products', [
             'id' => [
+                'identifier' => 'attr.products.id',
+                'identifierLabel' => 'label.products.id',
                 'title' => 'Id',
                 'type' => 'CONNECTION_POINT'
             ],
             'name' => [
                 'title' => 'Name',
                 'identifier' => 'ident.name.x',
+                'identifierLabel' => 'label.products.name',
                 'type' => 'ATTRIBUTE'
             ],
             'category' => [
@@ -61,6 +64,7 @@ class DatasetsTest extends AbstractClientTest
                 'schemaReference' => 'dataset.categories'
             ],
             'date' => [
+                'identifier' => 'date1.keboola',
                 'type' => 'DATE',
                 'format' => 'yyyy-MM-dd',
                 'template' => 'keboola',
