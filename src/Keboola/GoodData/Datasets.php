@@ -251,7 +251,7 @@ class Datasets
                         $manifest['dataSetSLIManifest']['parts'][] = [
                             'columnName' => $columnName . '_id',
                             'populates' => [
-                                sprintf('label.time.second.of.day.%s', $column['identifier'])
+                                "label.time.second.of.day.".Identifiers::getIdentifier($column['dateDimension'])
                             ],
                             'mode' => $incrementalLoad ? 'INCREMENTAL' : 'FULL',
                             'referenceKey' => 1
