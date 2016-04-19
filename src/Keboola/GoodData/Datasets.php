@@ -211,7 +211,9 @@ class Datasets
                     $manifest['dataSetSLIManifest']['parts'][] = [
                         'columnName' => $columnName,
                         'populates' => [
-                            "{$column['identifier']}.date.mmddyyyy"
+                            sprintf('%s.date.mmddyyyy', $column['identifier']
+                                . (!empty($column['template'] && strtolower($column['template']) != 'gooddata')
+                                    ? '.' . strtolower($column['template']) : null))
                         ],
                         'constraints' => [
                             'date' => (string)$column['format']
