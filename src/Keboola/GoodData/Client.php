@@ -399,14 +399,17 @@ class Client
         $retriesCount = 1;
         do {
             $isMaintenance = false;
+            $isWaiting = false;
 
             try {
                 $response = $this->guzzle->get($uri, $options);
 
-                $this->log($uri, 'GET', ['filename' => $filename], null, time() - $startTime);
+                $this->log($uri, 'GET', ['filename' => $filename], $response, time() - $startTime);
 
                 if ($response->getStatusCode() == 200) {
                     return $filename;
+                } elseif ($response->getStatusCode() == 202) {
+                    $isWaiting = true;
                 }
             } catch (RequestException $e) {
                 $this->log($uri, 'GET', [], $e->getResponse(), time() - $startTime, $options['headers'], $filename);
@@ -441,7 +444,7 @@ class Client
                 $retriesCount++;
                 $this->refreshToken();
             }
-        } while ($isMaintenance || $retriesCount <= self::RETRIES_COUNT);
+        } while ($isMaintenance || $retriesCount <= self::RETRIES_COUNT || ($isWaiting && $retriesCount <= 20));
 
         $this->logger->debug("Report export: downloading file timed out", [
             'request' => [
