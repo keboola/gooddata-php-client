@@ -389,6 +389,7 @@ class Client
         $startTime = time();
 
         $options = self::DEFAULT_CLIENT_SETTINGS;
+        $options['timeout'] = 0;
         $options['sink'] = $filename;
         $options['headers'] = array_replace($options['headers'], [
             'accept' => 'text/csv',
