@@ -84,6 +84,7 @@ class ClientTest extends AbstractClientTest
     public function testGoodDataClientPing()
     {
         try {
+            $this->client->setApiUrl('https://secure.gooddata.com');
             $this->client->get('/gdc/ping');
             $ping = true;
         } catch (\Exception $e) {
@@ -119,5 +120,15 @@ class ClientTest extends AbstractClientTest
         $f = fopen($file, 'r');
         $this->assertEquals('accountSetting:', trim(fgets($f)));
         fclose($f);
+    }
+
+    public function testGoodDataClientGetSubClasses()
+    {
+        $this->assertInstanceOf('\Keboola\GoodData\Datasets', $this->client->getDatasets());
+        $this->assertInstanceOf('\Keboola\GoodData\DateDimensions', $this->client->getDateDimensions());
+        $this->assertInstanceOf('\Keboola\GoodData\Filters', $this->client->getFilters());
+        $this->assertInstanceOf('\Keboola\GoodData\ProjectModel', $this->client->getProjectModel());
+        $this->assertInstanceOf('\Keboola\GoodData\Projects', $this->client->getProjects());
+        $this->assertInstanceOf('\Keboola\GoodData\Users', $this->client->getUsers());
     }
 }
