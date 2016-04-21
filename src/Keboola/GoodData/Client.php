@@ -6,6 +6,7 @@
  */
 namespace Keboola\GoodData;
 
+use Guzzle\Http\Message\RequestInterface;
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Exception\ServerException;
@@ -84,8 +85,8 @@ class Client
     {
         $handlerStack = HandlerStack::create();
 
-        // @TODO so far retries are handled by request() method itself
-        /*$handlerStack->push(Middleware::retry(
+        /** @noinspection PhpUnusedParameterInspection */
+        $handlerStack->push(Middleware::retry(
             function ($retries, RequestInterface $request, ResponseInterface $response = null, $error = null) {
                 return $response && $response->getStatusCode() == 503;
             },
@@ -93,6 +94,7 @@ class Client
                 return rand(60, 600) * 1000;
             }
         ));
+        /** @noinspection PhpUnusedParameterInspection */
         $handlerStack->push(Middleware::retry(
             function ($retries, RequestInterface $request, ResponseInterface $response = null, $error = null) {
                 if ($retries >= self::RETRIES_COUNT) {
@@ -108,7 +110,7 @@ class Client
             function ($retries) {
                 return (int) pow(2, $retries - 1) * 1000;
             }
-        ));*/
+        ));
 
         $handlerStack->push(Middleware::cookies());
         if ($this->logger) {
@@ -283,7 +285,6 @@ class Client
                 $response = $this->guzzle->request('GET', '/gdc/ping', self::DEFAULT_CLIENT_SETTINGS);
                 return $response->getStatusCode() != 503;
             } catch (ServerException $e) {
-                //@TODO Log to SAPI events? ($this->eventLogger is empty)
                 return false;
             } catch (ConnectException $e) {
                 $curlErrorCount++;
@@ -315,75 +316,54 @@ class Client
 
         $startTime = time();
 
-        $retriesCount = 1;
-        do {
-            $isMaintenance = false;
+        $options = self::DEFAULT_CLIENT_SETTINGS;
 
-            $options = self::DEFAULT_CLIENT_SETTINGS;
-
-            if ($params) {
-                if ($method == 'GET' || $method == 'DELETE') {
-                    $options['query'] = $params;
-                } else {
-                    $options['json'] = $params;
-                }
-            }
-
-            if ($filename) {
-                $options['sink'] = $filename;
-            }
-
-            if ($headers) {
-                $options['headers'] = array_replace($options['headers'], $headers);
-            }
-
-            try {
-                $response = $this->guzzle->request($method, $uri, $options);
-
-                $this->log($uri, $method, $params, $response, time() - $startTime, $headers, $filename);
-                return $response;
-            } catch (RequestException $e) {
-                $this->log($uri, $method, $params, $e->getResponse(), time() - $startTime, $headers, $filename);
-
-                if ($e->hasResponse()) {
-                    $response = $e->getResponse();
-                    $responseJson = json_decode($response->getBody(), true);
-                    switch ($e->getResponse()->getStatusCode()) {
-                        case 401:
-                            if ($uri == '/gdc/account/login') {
-                                throw Exception::error($uri, $responseJson, 401, $e);
-                            } else {
-                                $this->login($this->username, $this->password);
-                            }
-                            break;
-                        case 503:
-                            $isMaintenance = true;
-                            break;
-                        default:
-                            throw Exception::error($uri, $responseJson, $response->getStatusCode(), $e);
-                    }
-                }
-            } catch (\Exception $e) {
-                $this->log($uri, $method, $params, null, time() - $startTime, $headers, $filename);
-                throw $e;
-            }
-
-            if ($isMaintenance) {
-                sleep(rand(60, 600));
+        if ($params) {
+            if ($method == 'GET' || $method == 'DELETE') {
+                $options['query'] = $params;
             } else {
-                sleep(self::BACKOFF_INTERVAL * ($retriesCount + 1));
-                $retriesCount++;
-                $this->refreshToken();
+                $options['json'] = $params;
             }
-        } while ($isMaintenance || $retriesCount <= self::RETRIES_COUNT);
+        }
 
-        // Retries didn't help
-        $statusCode = !empty($response) ? $response->getStatusCode() : null;
-        $responseJson = !empty($response) ? $response->json() : null;
-        throw Exception::error($uri, $responseJson, $statusCode, !empty($e) ? $e : null);
+        if ($filename) {
+            $options['sink'] = $filename;
+        }
+
+        if ($headers) {
+            $options['headers'] = array_replace($options['headers'], $headers);
+        }
+
+        try {
+            $response = $this->guzzle->request($method, $uri, $options);
+
+            $this->log($uri, $method, $params, $response, time() - $startTime, $headers, $filename);
+            return $response;
+        } catch (RequestException $e) {
+            $this->log($uri, $method, $params, $e->getResponse(), time() - $startTime, $headers, $filename);
+
+            if ($e->hasResponse()) {
+                $response = $e->getResponse();
+                $responseJson = json_decode($response->getBody(), true);
+                switch ($e->getResponse()->getStatusCode()) {
+                    case 401:
+                        if ($uri == '/gdc/account/login') {
+                            throw Exception::error($uri, $responseJson, 401, $e);
+                        } else {
+                            $this->login($this->username, $this->password);
+                        }
+                        break;
+                    default:
+                        throw Exception::error($uri, $responseJson, $response->getStatusCode(), $e);
+                }
+            }
+        } catch (\Exception $e) {
+            $this->log($uri, $method, $params, null, time() - $startTime, $headers, $filename);
+            throw $e;
+        }
     }
 
-    public function getToFile($uri, $filename)
+    public function getToFile($uri, $filename, $retries = 20)
     {
         $this->refreshToken();
         $startTime = time();
@@ -396,67 +376,42 @@ class Client
             'accept-charset' => 'utf-8'
         ]);
 
-        $retriesCount = 1;
-        do {
-            $isMaintenance = false;
-            $isWaiting = false;
+        try {
+            $response = $this->guzzle->get($uri, $options);
 
-            try {
-                $response = $this->guzzle->get($uri, $options);
+            $this->log($uri, 'GET', ['filename' => $filename], $response, time() - $startTime);
 
-                $this->log($uri, 'GET', ['filename' => $filename], $response, time() - $startTime);
-
-                if ($response->getStatusCode() == 200) {
-                    return $filename;
-                } elseif ($response->getStatusCode() == 202) {
-                    $isWaiting = true;
+            if ($response->getStatusCode() == 200) {
+                return $filename;
+            } elseif ($response->getStatusCode() == 202) {
+                if ($retries <= 0) {
+                    throw new Exception("Downloading of report timed out");
                 }
-            } catch (RequestException $e) {
-                $this->log($uri, 'GET', [], $e->getResponse(), time() - $startTime, $options['headers'], $filename);
+                sleep(self::BACKOFF_INTERVAL * (21 - $retries));
+                return $this->getToFile($uri, $filename, $retries-1);
+            }
+        } catch (RequestException $e) {
+            $this->log($uri, 'GET', [], $e->getResponse(), time() - $startTime, $options['headers'], $filename);
 
-                if ($e->hasResponse()) {
-                    $response = $e->getResponse();
-                    $responseJson = json_decode($response->getBody(), true);
-                    switch ($e->getResponse()->getStatusCode()) {
-                        case 401:
-                            if ($uri == '/gdc/account/login') {
-                                throw Exception::error($uri, $responseJson, 401, $e);
-                            } else {
-                                $this->login($this->username, $this->password);
-                            }
-                            break;
-                        case 503:
-                            $isMaintenance = true;
-                            break;
-                        default:
-                            throw Exception::error($uri, $responseJson, $response->getStatusCode(), $e);
-                    }
+            if ($e->hasResponse()) {
+                $response = $e->getResponse();
+                $responseJson = json_decode($response->getBody(), true);
+                switch ($e->getResponse()->getStatusCode()) {
+                    case 401:
+                        if ($uri == '/gdc/account/login') {
+                            throw Exception::error($uri, $responseJson, 401, $e);
+                        } else {
+                            $this->login($this->username, $this->password);
+                        }
+                        break;
+                    default:
+                        throw Exception::error($uri, $responseJson, $response->getStatusCode(), $e);
                 }
-            } catch (\Exception $e) {
-                $this->log($uri, 'GET', [], null, time() - $startTime, $options['headers'], $filename);
-                throw $e;
             }
-
-            if ($isMaintenance) {
-                sleep(rand(60, 600));
-            } else {
-                sleep(self::BACKOFF_INTERVAL * ($retriesCount + 1));
-                $retriesCount++;
-                $this->refreshToken();
-            }
-        } while ($isMaintenance || $retriesCount <= self::RETRIES_COUNT || ($isWaiting && $retriesCount <= 20));
-
-        $this->logger->debug("Report export: downloading file timed out", [
-            'request' => [
-                'uri' => $uri,
-                'filename' => $filename,
-            ],
-            'statusCode' => !empty($response) ? $response->getStatusCode() : null,
-            'retries' => $retriesCount,
-            'isMaintenance' => $isMaintenance
-        ]);
-
-        return false;
+        } catch (\Exception $e) {
+            $this->log($uri, 'GET', [], null, time() - $startTime, $options['headers'], $filename);
+            throw $e;
+        }
     }
 
     public function login($username, $password)
