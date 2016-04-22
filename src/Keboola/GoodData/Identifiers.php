@@ -55,12 +55,15 @@ class Identifiers
     
     public static function getDateDimensionGrainId($name, $template = null)
     {
-        return self::getIdentifier($name) . ($template ? ".$template" : "");
+        $template = strtolower($template);
+        return self::getIdentifier($name) . (($template && $template != 'gooddata') ? ".$template" : "");
     }
 
     public static function getDateDimensionId($name, $template = null)
     {
-        return self::getIdentifier($name) . ($template? '.' . $template : null) . '.dataset.dt';
+        $template = strtolower($template);
+        return self::getIdentifier($name)
+            . (($template && $template != 'gooddata') ? '.' . $template : null) . '.dataset.dt';
     }
 
     public static function getDateFactId($tableName, $attrName)
