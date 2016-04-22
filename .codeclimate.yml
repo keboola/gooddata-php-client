@@ -12,6 +12,9 @@ engines:
       standard: "PSR1,PSR2"
   phpmd:
     enabled: true
+    checks:
+      CleanCode/StaticAccess:
+        enabled: false
 ratings:
   paths:
   - "**.php"
