@@ -27,6 +27,8 @@ class ProjectModelTest extends AbstractClientTest
         }
         $this->assertTrue($categoriesFound);
 
+
+        // Update dataset
         $this->client->getProjectModel()->updateDataSet($pid, [
             "identifier" => "dataset.categories",
             "title" => "Categories",
@@ -52,6 +54,7 @@ class ProjectModelTest extends AbstractClientTest
         $this->assertArrayHasKey('projectModel', $result);
         $this->assertArrayHasKey('datasets', $result['projectModel']);
         $categoriesFound = false;
+        $dataSetsCount = count($result['projectModel']['datasets']);
         foreach ($result['projectModel']['datasets'] as $dataSet) {
             $this->assertArrayHasKey('dataset', $dataSet);
             $this->assertArrayHasKey('title', $dataSet['dataset']);
@@ -61,7 +64,46 @@ class ProjectModelTest extends AbstractClientTest
             }
         }
         $this->assertTrue($categoriesFound);
-        
+
+
+        // Add new dataset
+        $this->client->getProjectModel()->updateDataSet($pid, [
+            "identifier" => "dataset.test",
+            "title" => "Test",
+            "anchor" => [
+                "attribute" => [
+                    "identifier" => "attr.test.name",
+                    "title" => "Name",
+                    "defaultLabel" => "label.test.name",
+                    "labels" => [
+                        [
+                            "label" => [
+                                "identifier" => "label.test.name",
+                                "title" => "Name",
+                                "type" => "GDC.text"
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ]);
+
+        $result = $this->client->getProjectModel()->view($pid);
+        $this->assertArrayHasKey('projectModel', $result);
+        $this->assertArrayHasKey('datasets', $result['projectModel']);
+        $dataSetFound = false;
+        foreach ($result['projectModel']['datasets'] as $dataSet) {
+            $this->assertArrayHasKey('dataset', $dataSet);
+            $this->assertArrayHasKey('title', $dataSet['dataset']);
+            if ($dataSet['dataset']['title'] == 'Test') {
+                $dataSetFound= true;
+            }
+        }
+        $this->assertTrue($dataSetFound);
+        $this->assertEquals($dataSetsCount+1, count($result['projectModel']['datasets']));
+
+
+        // Drop dataset
         $this->client->getProjectModel()->dropDataSet($pid, 'Products');
 
         $result = $this->client->getProjectModel()->view($pid);
@@ -73,5 +115,6 @@ class ProjectModelTest extends AbstractClientTest
             }
         }
         $this->assertTrue(true);
+        $this->assertEquals($dataSetsCount, count($result['projectModel']['datasets']));
     }
 }
