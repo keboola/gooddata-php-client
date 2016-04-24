@@ -230,6 +230,7 @@ class Client
 
     public function jsonRequest($method, $uri, $params = [])
     {
+        $this->refreshToken();
         $body = $this->request($method, $uri, $params)->getBody();
         return json_decode($body, true);
     }
@@ -309,16 +310,11 @@ class Client
     /**
      * @return ResponseInterface
      */
-    public function request($method, $uri, $params = [], $refreshToken = true, $headers = null, $filename = null)
+    public function request($method, $uri, $params = [], $retries = 5)
     {
-        if ($refreshToken) {
-            $this->refreshToken();
-        }
-
         $startTime = time();
 
         $options = self::DEFAULT_CLIENT_SETTINGS;
-
         if ($params) {
             if ($method == 'GET' || $method == 'DELETE') {
                 $options['query'] = $params;
@@ -327,39 +323,31 @@ class Client
             }
         }
 
-        if ($filename) {
-            $options['sink'] = $filename;
-        }
-
-        if ($headers) {
-            $options['headers'] = array_replace($options['headers'], $headers);
-        }
-
         try {
             $response = $this->guzzle->request($method, $uri, $options);
-
-            $this->log($uri, $method, $params, $response, time() - $startTime, $headers, $filename);
+            $this->log($uri, $method, $params, $response, time() - $startTime);
             return $response;
-        } catch (RequestException $e) {
-            $this->log($uri, $method, $params, $e->getResponse(), time() - $startTime, $headers, $filename);
-
-            if ($e->hasResponse()) {
-                $response = $e->getResponse();
-                $responseJson = json_decode($response->getBody(), true);
-                switch ($e->getResponse()->getStatusCode()) {
-                    case 401:
-                        if ($uri == '/gdc/account/login') {
-                            throw Exception::error($uri, $responseJson, 401, $e);
-                        } else {
-                            $this->login($this->username, $this->password);
-                        }
-                        break;
-                    default:
-                        throw Exception::error($uri, $responseJson, $response->getStatusCode(), $e);
-                }
-            }
         } catch (\Exception $e) {
-            $this->log($uri, $method, $params, null, time() - $startTime, $headers, $filename);
+            $response = $e instanceof RequestException && $e->hasResponse() ? $e->getResponse() : null;
+            $this->log($uri, $method, $params, $response, time() - $startTime);
+
+            if ($response) {
+                $responseJson = json_decode($response->getBody(), true);
+                if ($response->getStatusCode() == 401) {
+                    if ($uri == '/gdc/account/login') {
+                        throw Exception::error($uri, $responseJson, 401, $e);
+                    }
+                    if ($retries <= 0) {
+                        throw $e;
+                    }
+
+                    $this->login($this->username, $this->password);
+                    return $this->request($method, $uri, $params, $retries-1);
+                }
+
+                throw Exception::error($uri, $responseJson, $response->getStatusCode(), $e);
+            }
+
             throw $e;
         }
     }
@@ -379,38 +367,38 @@ class Client
 
         try {
             $response = $this->guzzle->get($uri, $options);
-
             $this->log($uri, 'GET', ['filename' => $filename], $response, time() - $startTime);
 
             if ($response->getStatusCode() == 200) {
                 return $filename;
             } elseif ($response->getStatusCode() == 202) {
                 if ($retries <= 0) {
-                    throw new Exception("Downloading of report timed out");
+                    throw new Exception("Downloading of report $uri timed out");
                 }
                 sleep(self::BACKOFF_INTERVAL * (21 - $retries));
                 return $this->getToFile($uri, $filename, $retries-1);
             }
-        } catch (RequestException $e) {
-            $this->log($uri, 'GET', [], $e->getResponse(), time() - $startTime, $options['headers'], $filename);
-
-            if ($e->hasResponse()) {
-                $response = $e->getResponse();
-                $responseJson = json_decode($response->getBody(), true);
-                switch ($e->getResponse()->getStatusCode()) {
-                    case 401:
-                        if ($uri == '/gdc/account/login') {
-                            throw Exception::error($uri, $responseJson, 401, $e);
-                        } else {
-                            $this->login($this->username, $this->password);
-                        }
-                        break;
-                    default:
-                        throw Exception::error($uri, $responseJson, $response->getStatusCode(), $e);
-                }
-            }
         } catch (\Exception $e) {
-            $this->log($uri, 'GET', [], null, time() - $startTime, $options['headers'], $filename);
+            $response = $e instanceof RequestException && $e->hasResponse() ? $e->getResponse() : null;
+            $this->log($uri, 'GET', ['file' => $filename], $response, time() - $startTime);
+
+            if ($response) {
+                $responseJson = json_decode($response->getBody(), true);
+                if ($response->getStatusCode() == 401) {
+                    if ($uri == '/gdc/account/login') {
+                        throw Exception::error($uri, $responseJson, 401, $e);
+                    }
+                    if ($retries <= 0) {
+                        throw $e;
+                    }
+
+                    $this->login($this->username, $this->password);
+                    return $this->getToFile($uri, $filename, $retries-1);
+                }
+
+                throw Exception::error($uri, $responseJson, $response->getStatusCode(), $e);
+            }
+
             throw $e;
         }
     }
@@ -427,7 +415,7 @@ class Client
                     'password' => $this->password,
                     'remember' => 0
                 ]
-            ], false);
+            ]);
         } catch (Exception $e) {
             throw Exception::loginError($e);
         }
@@ -438,21 +426,14 @@ class Client
     public function refreshToken()
     {
         try {
-            $this->request('GET', '/gdc/account/token', [], false);
+            $this->request('GET', '/gdc/account/token');
         } catch (Exception $e) {
             throw Exception::loginError($e);
         }
     }
 
-    protected function log(
-        $uri,
-        $method,
-        $params,
-        Response $response = null,
-        $duration = 0,
-        $headers = null,
-        $filename = null
-    ) {
+    protected function log($uri, $method, $params, Response $response = null, $duration = 0)
+    {
         if (!$this->logger) {
             return;
         }
@@ -474,13 +455,7 @@ class Client
             'duration' => $duration,
             'pid' => getmypid()
         ];
-        if ($headers) {
-            $data['request']['headers'] = $headers;
-        }
-        if ($filename) {
-            $data['request']['filename'] = $filename;
-        }
 
-        $this->logger->debug($method . ' ' . $uri, array_merge($this->logData, $data));
+        $this->logger->debug("$method $uri", array_merge($this->logData, $data));
     }
 }

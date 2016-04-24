@@ -108,20 +108,6 @@ class ClientTest extends AbstractClientTest
         $this->assertEquals($link, $this->client->getUserUploadUrl());
     }
 
-    public function testGoodDataClientGetToFile()
-    {
-        $temp = Helper::getTemp();
-        $file = $temp->createTmpFile();
-        $this->client->request('GET', '/gdc/account/profile/current', [], true, [
-            'accept' => 'text/plain',
-            'accept-charset' => 'utf-8'
-        ], $file->getPathname());
-        $this->assertTrue(file_exists($file->getPathname()));
-        $f = fopen($file, 'r');
-        $this->assertEquals('accountSetting:', trim(fgets($f)));
-        fclose($f);
-    }
-
     public function testGoodDataClientGetSubClasses()
     {
         $this->assertInstanceOf('\Keboola\GoodData\Datasets', $this->client->getDatasets());
