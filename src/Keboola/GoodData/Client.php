@@ -282,7 +282,8 @@ class Client
         $curlErrorCount = 0;
         do {
             try {
-                $response = $this->guzzle->request('GET', '/gdc/ping', self::DEFAULT_CLIENT_SETTINGS);
+                $guzzle = new \GuzzleHttp\Client(['base_uri' => $this->apiUrl]);
+                $response = $guzzle->request('GET', '/gdc/ping', self::DEFAULT_CLIENT_SETTINGS);
                 return $response->getStatusCode() != 503;
             } catch (ServerException $e) {
                 return false;
