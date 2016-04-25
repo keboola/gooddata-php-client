@@ -41,6 +41,21 @@ class FiltersTest extends AbstractClientTest
             "([$attrUri] = [$attrValueUri]) OVER [$overAttrUri] TO [$toAttrUri]",
             $result['userFilter']['content']['expression']
         );
+
+
+        // Test array value
+        $attrValueUri2 = $this->client->getDatasets()->getAttributeValueUri($pid, $attrIdentifier, 'c2');
+        $uri = $filters->create($pid, $filter, $attrUri, 'IN', [$attrValueUri, $attrValueUri2]);
+
+        $result = $this->client->get($uri);
+        $this->assertArrayHasKey('userFilter', $result);
+        $this->assertArrayHasKey('meta', $result['userFilter']);
+        $this->assertArrayHasKey('title', $result['userFilter']['meta']);
+        $this->assertEquals($filter, $result['userFilter']['meta']['title']);
+        $this->assertEquals(
+            "[$attrUri] IN ([$attrValueUri],[$attrValueUri2])",
+            $result['userFilter']['content']['expression']
+        );
     }
 
     public function testFiltersDelete()

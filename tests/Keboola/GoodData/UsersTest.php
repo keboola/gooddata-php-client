@@ -94,7 +94,7 @@ class UsersTest extends AbstractClientTest
         $this->assertEquals($uid, $usersApi->getUidFromEmailInProject($email, $pid));
     }
 
-    public function testUsersGetUser()
+    public function testUsersGetAndUpdate()
     {
         $uid = Helper::createUser();
 
@@ -103,6 +103,18 @@ class UsersTest extends AbstractClientTest
         $this->assertArrayHasKey('accountSetting', $result);
         $this->assertArrayHasKey('login', $result['accountSetting']);
         $this->assertArrayHasKey('email', $result['accountSetting']);
+
+        $newName = uniqid();
+        $result = $usersApi->getUser($uid);
+        $this->assertArrayHasKey('accountSetting', $result);
+        $this->assertArrayHasKey('firstName', $result['accountSetting']);
+        $this->assertNotEquals($newName, $result['accountSetting']['firstName']);
+
+        $usersApi->updateUser($uid, ['firstName' => $newName]);
+        $result = $usersApi->getUser($uid);
+        $this->assertArrayHasKey('accountSetting', $result);
+        $this->assertArrayHasKey('firstName', $result['accountSetting']);
+        $this->assertEquals($newName, $result['accountSetting']['firstName']);
     }
 
     public function testUsersGetCurrentUid()
