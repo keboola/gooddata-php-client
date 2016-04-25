@@ -225,6 +225,12 @@ class ProjectsTest extends AbstractClientTest
             }
         }
         $this->assertTrue($invitationFound);
+
+        // Invite user already in project
+        $user = Helper::getSomeUser();
+        $projects->addUser($pid, $user['uid']);
+        $result = $projects->inviteUser($pid, $user['email']);
+        $this->assertSame(true, $result);
     }
     
     public function testProjectsCancelInvitation()

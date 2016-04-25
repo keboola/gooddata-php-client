@@ -115,6 +115,7 @@ class ClientTest extends AbstractClientTest
         $this->assertInstanceOf('\Keboola\GoodData\Filters', $this->client->getFilters());
         $this->assertInstanceOf('\Keboola\GoodData\ProjectModel', $this->client->getProjectModel());
         $this->assertInstanceOf('\Keboola\GoodData\Projects', $this->client->getProjects());
+        $this->assertInstanceOf('\Keboola\GoodData\Reports', $this->client->getReports());
         $this->assertInstanceOf('\Keboola\GoodData\Users', $this->client->getUsers());
     }
 }
