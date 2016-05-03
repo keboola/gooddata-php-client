@@ -111,7 +111,7 @@ class WebDav
         try {
             $response = $this->client->request('GET', $file, ['headers' => ['Accept-Encoding' => 'gzip']]);
             $body = EntityBody::factory($response->getBody());
-            $body->uncompress();
+            $body->uncompress('gzip');
             return (string)$body;
         } catch (Exception $e) {
             throw new Exception("Error getting file '$file' from WebDav'. " . $e->getMessage(), $e->getCode(), $e);
