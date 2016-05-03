@@ -70,7 +70,7 @@ class Client
     /** @var  Users */
     protected $users;
 
-    public function __construct($url = null, $logger = null, $loggerFormatter = null)
+    public function __construct($url = null, $logger = null, $loggerFormatter = null, array $options = [])
     {
         $this->apiUrl = $url ?: self::API_URL;
         if ($logger) {
@@ -78,10 +78,10 @@ class Client
         }
         $this->loggerFormatter = $loggerFormatter ?: new MessageFormatter("{hostname} {req_header_User-Agent} - [{ts}] "
             . "\"{method} {resource} {protocol}/{version}\" {code} {res_header_Content-Length}");
-        $this->initClient();
+        $this->initClient($options);
     }
 
-    protected function initClient()
+    protected function initClient(array $options = [])
     {
         $handlerStack = HandlerStack::create();
 
@@ -116,11 +116,11 @@ class Client
         if ($this->logger) {
             $handlerStack->push(Middleware::log($this->logger, $this->loggerFormatter));
         }
-        $this->guzzle = new \GuzzleHttp\Client([
+        $this->guzzle = new \GuzzleHttp\Client(array_merge([
             'base_uri' => $this->apiUrl,
             'handler' => $handlerStack,
             'cookies' => true
-        ]);
+        ], $options));
     }
 
     public function getUsername()

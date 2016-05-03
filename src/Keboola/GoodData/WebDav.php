@@ -8,11 +8,18 @@
 
 namespace Keboola\GoodData;
 
-use Symfony\Component\Process\Process;
+use Guzzle\Http\EntityBody;
+use GuzzleHttp\Exception\ClientException;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Middleware;
+use Psr\Http\Message\RequestInterface;
+use Psr\Http\Message\ResponseInterface;
 
 class WebDav
 {
-    const URL = 'https://secure-di.gooddata.com/uploads';
+    const RETRIES_COUNT = 5;
+    const MAINTENANCE_RETRIES_COUNT = 60;
+    const URL = 'https://secure-di.gooddata.com/uploads/';
 
     protected $username;
     protected $password;
@@ -22,7 +29,54 @@ class WebDav
     {
         $this->username = $username;
         $this->password = $password;
+
+        if ($url && substr($url, -1) != '/') {
+            $url .= '/';
+        }
         $this->url = $url ?: self::URL;
+
+        $handlerStack = HandlerStack::create();
+
+        // Retry from maintenance, makes 5-10 hours of waiting
+        /** @noinspection PhpUnusedParameterInspection */
+        $handlerStack->push(Middleware::retry(
+            function ($retries, RequestInterface $request, ResponseInterface $response = null, $error = null) {
+                return $retries < self::MAINTENANCE_RETRIES_COUNT
+                    && $response && ($response->getStatusCode() == 503 || $response->getStatusCode() == 423);
+            },
+            function ($retries) {
+                return rand(60, 600) * 1000;
+            }
+        ));
+
+        // Retry for server errors
+        /** @noinspection PhpUnusedParameterInspection */
+        $handlerStack->push(Middleware::retry(
+            function ($retries, RequestInterface $request, ResponseInterface $response = null, $error = null) {
+                if ($retries >= self::RETRIES_COUNT) {
+                    return false;
+                } elseif ($response && $response->getStatusCode() > 499) {
+                    return true;
+                } elseif ($error) {
+                    return true;
+                } else {
+                    return false;
+                }
+            },
+            function ($retries) {
+                return (int) pow(2, $retries - 1) * 1000;
+            }
+        ));
+
+        $handlerStack->push(Middleware::cookies());
+        /*if ($this->logger) {
+            $handlerStack->push(Middleware::log($this->logger, $this->loggerFormatter));
+        }*/
+        $this->client = new \GuzzleHttp\Client([
+            'base_uri' => $this->url,
+            'handler' => $handlerStack,
+            'auth' => [$username, $password]
+        ]);
     }
 
     public function getUrl()
@@ -32,7 +86,7 @@ class WebDav
 
     public function createFolder($folder)
     {
-        $this->request($folder, 'MKCOL');
+        $this->client->request('MKCOL', $folder);
     }
 
     public function upload($file, $davFolder)
@@ -44,55 +98,52 @@ class WebDav
 
         $fileUri = "$davFolder/{$fileInfo['basename']}";
         try {
-            $this->request(
-                $fileUri,
-                'PUT',
-                '-T - --header ' . escapeshellarg('Content-encoding: gzip'),
-                'cat ' . escapeshellarg($file) . ' | gzip -c | '
-            );
+            $body = EntityBody::factory(fopen($file, 'r'));
+            $body->compress('gzip');
+            $this->client->request('PUT', $fileUri, ['body' => $body]);
         } catch (Exception $e) {
-            throw new Exception("Error when uploading file to WebDav url '$fileUri'. " . $e->getMessage(), 400, $e);
+            throw new Exception("Error uploading file to WebDav '$fileUri'. " . $e->getMessage(), $e->getCode(), $e);
         }
     }
 
     public function get($file)
     {
         try {
-            return $this->request($file, 'GET');
+            $response = $this->client->request('GET', $file, ['headers' => ['Accept-Encoding' => 'gzip']]);
+            $body = EntityBody::factory($response->getBody());
+            $body->uncompress();
+            return (string)$body;
         } catch (Exception $e) {
-            throw new Exception("Error when getting file '$file' from WebDav'. " . $e->getMessage(), 400, $e);
+            throw new Exception("Error getting file '$file' from WebDav'. " . $e->getMessage(), $e->getCode(), $e);
         }
     }
 
     public function fileExists($file)
     {
         try {
-            $this->request($file, 'PROPFIND');
+            $this->client->request('HEAD', $file);
             return true;
-        } catch (Exception $e) {
-            if (strpos($e->getMessage(), '404 Not Found') !== false
-                || strpos($e->getMessage(), 'curl: (22)') !== false) {
+        } catch (ClientException $e) {
+            if ($e->getResponse()->getStatusCode() == 404) {
                 return false;
-            } else {
-                throw $e;
             }
+            throw $e;
         }
     }
 
     public function listFiles($folderName, $extensions = [])
     {
-        $result = $this->request(
-            $folderName,
-            'PROPFIND',
-            ' --data ' . escapeshellarg(
-                '<?xml version="1.0"?><d:propfind xmlns:d="DAV:"><d:prop><d:displayname /></d:prop></d:propfind>'
-            )
-            . ' -L -H ' . escapeshellarg('Content-Type: application/xml') . ' -H ' . escapeshellarg('Depth: 1')
-        );
+        $result = $this->client->request('PROPFIND', "$folderName/", [
+            'body' => '<?xml version="1.0"?><d:propfind xmlns:d="DAV:"><d:prop><d:displayname /></d:prop></d:propfind>',
+            'headers' => [
+                'Content-Type' => 'application/xml',
+                'Depth' => '1'
+            ]
+        ]);
 
         libxml_use_internal_errors(true);
         /** @var \SimpleXMLElement $responseXML */
-        $responseXML = simplexml_load_string($result, null, LIBXML_NOBLANKS | LIBXML_NOCDATA);
+        $responseXML = simplexml_load_string($result->getBody(), null, LIBXML_NOBLANKS | LIBXML_NOCDATA);
         if ($responseXML === false) {
             throw new Exception('WebDav returned bad result when asked for error logs.');
         }
@@ -140,7 +191,6 @@ class WebDav
         }
 
         if (count($errors)) {
-            $i = 0;
             $result = [];
             foreach ($errors as $f => $e) {
                 $json = json_decode($e, true);
@@ -152,46 +202,5 @@ class WebDav
         } else {
             return false;
         }
-    }
-
-    protected function request($uri, $method = null, $arguments = null, $prepend = null, $append = null)
-    {
-        $url = $this->url . '/' . $uri;
-        if ($method) {
-            $arguments .= ' -X ' . escapeshellarg($method);
-        }
-        $command = $prepend . sprintf(
-            'curl -s -S -f --retry 15 --user %s:%s %s %s',
-            escapeshellarg($this->username),
-            escapeshellarg($this->password),
-            $arguments,
-            escapeshellarg($url)
-        ) . $append;
-
-        $error = null;
-        $output = null;
-        for ($i = 0; $i < 5; $i++) {
-            $process = new Process($command);
-            $process->setTimeout(5 * 60 * 60);
-            $process->run();
-            $output = $process->getOutput();
-            $error = $process->getErrorOutput();
-
-            if (!$process->isSuccessful() || $error) {
-                $retry = false;
-                if (substr($error, 0, 7) == 'curl: (' && $process->getExitCode() != 22) {
-                    $retry = true;
-                }
-                if (!$retry) {
-                    break;
-                }
-            } else {
-                return $output;
-            }
-
-            sleep($i * 60);
-        }
-
-        throw new Exception($error? $error : $output);
     }
 }

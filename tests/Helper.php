@@ -270,6 +270,11 @@ class Helper
         $webDav->upload(__DIR__.'/data/categories.csv', $dirName);
         $webDav->upload(__DIR__.'/data/products.csv', $dirName);
         $webDav->upload(__DIR__.'/data/upload_info.json', $dirName);
+        $file = sys_get_temp_dir()."/".uniqid()."-file.log";
+        $webDav->saveLogs($dirName, $file);
+        if (file_exists($file)) {
+            echo file_get_contents($file).PHP_EOL.PHP_EOL;
+        }
         self::getClient()->getDatasets()->loadData($pid, $dirName);
     }
 
