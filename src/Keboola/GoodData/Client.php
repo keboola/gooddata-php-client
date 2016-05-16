@@ -44,7 +44,7 @@ class Client
 
     /** @var  \GuzzleHttp\Client */
     protected $guzzle;
-    protected $apiUrl;
+    protected $guzzleOptions;
     /** @var  LoggerInterface */
     protected $logger;
     /** @var null MessageFormatter */
@@ -72,16 +72,17 @@ class Client
 
     public function __construct($url = null, $logger = null, $loggerFormatter = null, array $options = [])
     {
-        $this->apiUrl = $url ?: self::API_URL;
+        $options['base_uri'] = $url ?: self::API_URL;
+        $this->guzzleOptions = $options;
         if ($logger) {
             $this->logger = $logger;
         }
         $this->loggerFormatter = $loggerFormatter ?: new MessageFormatter("{hostname} {req_header_User-Agent} - [{ts}] "
             . "\"{method} {resource} {protocol}/{version}\" {code} {res_header_Content-Length}");
-        $this->initClient($options);
+        $this->initClient();
     }
 
-    protected function initClient(array $options = [])
+    protected function initClient()
     {
         $handlerStack = HandlerStack::create();
 
@@ -117,10 +118,9 @@ class Client
             $handlerStack->push(Middleware::log($this->logger, $this->loggerFormatter));
         }
         $this->guzzle = new \GuzzleHttp\Client(array_merge([
-            'base_uri' => $this->apiUrl,
             'handler' => $handlerStack,
             'cookies' => true
-        ], $options));
+        ], $this->guzzleOptions));
     }
 
     public function getUsername()
@@ -145,7 +145,7 @@ class Client
 
     public function setApiUrl($url)
     {
-        $this->apiUrl = $url;
+        $this->guzzleOptions['base_uri'] = $url;
         $this->initClient();
     }
 
@@ -283,7 +283,7 @@ class Client
         $curlErrorCount = 0;
         do {
             try {
-                $guzzle = new \GuzzleHttp\Client(['base_uri' => $this->apiUrl]);
+                $guzzle = new \GuzzleHttp\Client(['base_uri' => $this->guzzleOptions['base_uri']]);
                 $response = $guzzle->request('GET', '/gdc/ping', self::DEFAULT_CLIENT_SETTINGS);
                 return $response->getStatusCode() != 503;
             } catch (ServerException $e) {
@@ -456,6 +456,6 @@ class Client
             'pid' => getmypid()
         ];
 
-        $this->logger->debug("$method $uri", array_merge($this->logData, $data));
+        $this->logger->debug("$method {$this->guzzle->getConfig('base_uri')}$uri", array_merge($this->logData, $data));
     }
 }

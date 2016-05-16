@@ -16,8 +16,7 @@ abstract class AbstractClientTest extends \PHPUnit_Framework_TestCase
     {
         parent::__construct();
 
-        $this->client = new Client(KBGDC_API_URL);
-        $this->client->setLogger(Helper::getLogger());
+        $this->client = new Client(KBGDC_API_URL, Helper::getLogger(), null, ['verify' => false]);
         $this->client->login(KBGDC_USERNAME, KBGDC_PASSWORD);
     }
 }

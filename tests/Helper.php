@@ -72,8 +72,7 @@ class Helper
     public static function getClient()
     {
         if (!self::$client) {
-            self::$client = new Client();
-            self::$client->setLogger(self::getLogger());
+            self::$client = new Client(KBGDC_API_URL, self::getLogger(), null, ['verify' => false]);
             self::$client->setLogData([
                 'app' => KBGDC_APP_NAME
             ]);
