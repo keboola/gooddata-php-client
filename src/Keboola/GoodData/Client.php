@@ -143,8 +143,11 @@ class Client
         $this->logger = $logger;
     }
 
-    public function setApiUrl($url)
+    public function setApiUrl($url, $verify = true)
     {
+        if (!$verify) {
+            $this->guzzleOptions['verify'] = false;
+        }
         $this->guzzleOptions['base_uri'] = $url;
         $this->initClient();
     }
