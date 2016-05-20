@@ -5,7 +5,7 @@
         "attribute": {
             "identifier": "attr.time.second.of.day.%ID%",
             "title": "Time (%TITLE%)",
-            "folder": "Time Dimension (%TITLE%)",
+            "folder": "Time dimension (%TITLE%)",
             "labels": [
                 {
                     "label": {
