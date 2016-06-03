@@ -47,7 +47,9 @@ class Exception extends \Exception
                 $message = "GoodData user does not have access to resource '$uri'. $message";
                 break;
             case 410:
-                $message = "GoodData uri $uri is not reachable, project has been probably deleted. $message";
+                if (strpos($message, 'task failed') === false) {
+                    $message = "GoodData uri $uri is not reachable, project has been probably deleted. $message";
+                }
                 break;
             case 429:
                 $message = "Too many requests on GoodData API. Try again later please. $message";
