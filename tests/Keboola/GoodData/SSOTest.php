@@ -21,8 +21,8 @@ class SSOTest extends \PHPUnit_Framework_TestCase
 
         $targetUrl = "/#s=/gdc/projects/$pid|projectDashboardPage";
 
-        $sso = new SSO();
-        $ssoLink = $sso->getUrl(KBGDC_USERNAME, KBGDC_SSO_KEY, KBGDC_SSO_PROVIDER, $targetUrl, $user['email']);
+        $sso = new SSO(null, null, KBGDC_API_URL);
+        $ssoLink = $sso->getUrl(KBGDC_USERNAME, KBGDC_SSO_KEY, KBGDC_SSO_PROVIDER, $targetUrl, $user['email'], 3600, KBGDC_SSO_KEY_PASS);
 
         $stack = \GuzzleHttp\HandlerStack::create();
         $lastRequest = null;
@@ -32,7 +32,8 @@ class SSOTest extends \PHPUnit_Framework_TestCase
         }));
         $client = new Client([
             'handler' => $stack,
-            \GuzzleHttp\RequestOptions::ALLOW_REDIRECTS => true
+            \GuzzleHttp\RequestOptions::ALLOW_REDIRECTS => true,
+            'verify' => false
         ]);
         try {
             $client->request('GET', $ssoLink, ['headers' => [
@@ -41,9 +42,9 @@ class SSOTest extends \PHPUnit_Framework_TestCase
         } catch (RequestException $e) {
             if ($e->hasResponse()) {
                 $response = $e->getResponse()->getBody();
-                $this->fail($response);
+                $this->fail("$response on link: $ssoLink");
             } else {
-                $this->fail($e->getMessage());
+                $this->fail($e->getMessage() . " on link: $ssoLink");
             }
         }
         /** @var Request $lastRequest */
