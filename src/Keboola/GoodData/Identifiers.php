@@ -65,9 +65,4 @@ class Identifiers
         return self::getIdentifier($name)
             . (($template && $template != 'gooddata') ? '.' . $template : null) . '.dataset.dt';
     }
-
-    public static function getDateFactId($tableName, $attrName)
-    {
-        return sprintf('dt.%s.%s', self::getIdentifier($tableName), self::getIdentifier($attrName));
-    }
 }

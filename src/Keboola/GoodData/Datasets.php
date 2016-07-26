@@ -127,8 +127,7 @@ class Datasets
     public static function getDataLoadManifest(
         $identifier,
         array $columns,
-        $incrementalLoad = false,
-        $useDateFacts = false
+        $incrementalLoad = false
     ) {
         $manifest = [
             'dataSetSLIManifest' => [
@@ -219,20 +218,6 @@ class Datasets
                         'mode' => $incrementalLoad ? 'INCREMENTAL' : 'FULL',
                         'referenceKey' => 1
                     ];
-                    if ($useDateFacts) {
-                        if (!isset($column['identifierDateFact'])) {
-                            throw Exception::configurationError(
-                                "Configuration of column $columnName is missing 'identifierDateFact'"
-                            );
-                        }
-                        $manifest['dataSetSLIManifest']['parts'][] = [
-                            'columnName' => $columnName . '_dt',
-                            'populates' => [
-                                $column['identifierDateFact']
-                            ],
-                            'mode' => $incrementalLoad ? 'INCREMENTAL' : 'FULL'
-                        ];
-                    }
                     if (!empty($column['includeTime'])) {
                         if (!isset($column['identifierTimeFact'])) {
                             throw Exception::configurationError(

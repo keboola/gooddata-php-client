@@ -54,9 +54,4 @@ class IdentifiersTest extends \PHPUnit_Framework_TestCase
     {
         $this->assertEquals('zcrd.template.dataset.dt', Identifiers::getDateDimensionId('ž č ř Ď', 'template'));
     }
-
-    public function testIdentifiersGetDateFactId()
-    {
-        $this->assertEquals('dt.zcrd.uu', Identifiers::getDateFactId('ž č ř Ď', 'ú Ů'));
-    }
 }
