@@ -28,7 +28,7 @@ class SSO
     {
         $signData = json_encode(['email' => $email, 'validity' => time() + $validity]);
 
-        $gpg = new Crypt_GPG();
+        $gpg = new Crypt_GPG(['homedir' => sys_get_temp_dir()]);
 
         $gpg->importKey($key);
         $gpg->addSignKey($user, $keyPass);
