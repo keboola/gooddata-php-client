@@ -86,6 +86,7 @@ class Users
         $userData = $this->getUser($uid);
         unset($userData['accountSetting']['login']);
         unset($userData['accountSetting']['email']);
+        unset($userData['accountSetting']['effectiveIpWhitelist']);
         $userData['accountSetting'] = array_merge($userData['accountSetting'], $data);
         $this->client->put("/gdc/account/profile/$uid", $userData);
     }
