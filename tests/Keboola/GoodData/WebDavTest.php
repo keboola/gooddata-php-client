@@ -21,7 +21,7 @@ class WebDavTest extends \PHPUnit_Framework_TestCase
 
     public function testWebDavGetUrl()
     {
-        $this->assertEquals('https://secure-di.gooddata.com/uploads/', $this->client->getUrl());
+        $this->assertEquals('https://secure.gooddata.com/gdc/uploads/', $this->client->getUrl());
     }
 
     public function testWebDavUpload()
