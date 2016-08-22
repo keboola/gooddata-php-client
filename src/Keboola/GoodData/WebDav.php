@@ -19,7 +19,7 @@ class WebDav
 {
     const RETRIES_COUNT = 5;
     const MAINTENANCE_RETRIES_COUNT = 60;
-    const URL = 'https://secure-di.gooddata.com/uploads/';
+    const URL = 'https://secure-di.gooddata.com/gdc/uploads/';
 
     protected $username;
     protected $password;
