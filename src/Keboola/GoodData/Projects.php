@@ -252,7 +252,7 @@ class Projects
         }
     }
 
-    public function inviteUser($pid, $email, $role = Projects::ROLE_ADMIN)
+    public function inviteUser($pid, $email, $role = Projects::ROLE_ADMIN, $filters = [])
     {
         $projectRoleUri = $this->getRoleUri($pid, $role);
 
@@ -263,7 +263,8 @@ class Projects
                         'invitation' => [
                             'content' => [
                                 'email' => $email,
-                                'role' => $projectRoleUri
+                                'role' => $projectRoleUri,
+                                'userFilters' => $filters
                             ]
                         ]
                     ]
