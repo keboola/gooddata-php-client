@@ -116,6 +116,13 @@ class Datasets
                         }
                     }
                 }
+                if (isset($taskResponse['wTaskStatus']['messages'])) {
+                    foreach ($taskResponse['wTaskStatus']['messages'] as $m) {
+                        if (isset($m['error'])) {
+                            $errors[] = Exception::parseMessage($m['error']);
+                        }
+                    }
+                }
                 throw new Exception($errors);
             }
             return isset($taskResponse['messages']) ? $taskResponse['messages'] : [];
