@@ -78,6 +78,13 @@ class Filters
             ? $response['userFilters']['items'][0]['userFilters'] : [];
     }
 
+    public function getForProject($pid)
+    {
+         $response = $this->client->get("/gdc/md/$pid/query/userfilters");
+         return isset($response['query']['entries'])
+             ? $response['query']['entries'] : [];
+    }
+
     public function delete($uri)
     {
         $this->client->delete($uri);
