@@ -370,7 +370,7 @@ class Client
 
         try {
             $response = $this->guzzle->get($uri, $options);
-            $this->log($uri, 'GET', ['filename' => $filename], $response, time() - $startTime);
+            $this->log($uri, 'GET', ['filename' => $filename], new Response($response->getStatusCode()), time() - $startTime);
 
             if ($response->getStatusCode() == 200) {
                 return $filename;
