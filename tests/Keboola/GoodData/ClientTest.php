@@ -96,16 +96,49 @@ class ClientTest extends AbstractClientTest
 
     public function testGoodDataClientGetUserUploadUrl()
     {
-        $data = $this->client->get('/gdc');
-        $link = false;
-        foreach ($data['about']['links'] as $r) {
-            if ($r['category'] == 'uploads') {
-                $link = $r['link'];
-            }
-        }
+        $data = json_decode('{
+  "about": {
+    "summary": "Use links to navigate the services.",
+    "category": "GoodData API root",
+    "links": [
+      {
+        "link": "/gdc/releaseInfo",
+        "summary": "Release information.",
+        "category": "releaseInfo",
+        "title": "releaseInfo"
+      },
+      {
+        "link": "/gdc/uploads",
+        "summary": "User data staging area.",
+        "category": "uploads",
+        "title": "user-uploads"
+      }
+    ]
+  }
+}', true);
+        $this->assertEquals(KBGDC_API_URL . '/gdc/uploads', $this->client->getUserUploadUrlFromGdcResponse($data));
 
-        $this->assertNotEmpty($link);
-        $this->assertEquals($link, $this->client->getUserUploadUrl());
+        $data = json_decode('{
+  "about": {
+    "summary": "Use links to navigate the services.",
+    "category": "GoodData API root",
+    "links": [
+      {
+        "link": "/gdc/releaseInfo",
+        "summary": "Release information.",
+        "category": "releaseInfo",
+        "title": "releaseInfo"
+      },
+      {
+        "link": "https://secure-di.gooddata.com/uploads",
+        "summary": "User data staging area.",
+        "category": "uploads",
+        "title": "user-uploads"
+      }
+    ]
+  }
+}', true);
+        $this->assertEquals('https://secure-di.gooddata.com/uploads', $this->client->getUserUploadUrlFromGdcResponse($data));
     }
 
     public function testGoodDataClientGetSubClasses()

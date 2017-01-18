@@ -299,15 +299,20 @@ class Client
         return false;
     }
 
-    public function getUserUploadUrl()
+    public function getUserUploadUrlFromGdcResponse($data)
     {
-        $data = $this->get('/gdc');
         foreach ($data['about']['links'] as $r) {
             if ($r['category'] == 'uploads') {
-                return $r['link'];
+                return ($r['link'][0] === '/') ? "{$this->guzzle->getConfig('base_uri')}{$r['link']}" : $r['link'];
             }
         }
         return false;
+    }
+
+    public function getUserUploadUrl()
+    {
+        $data = $this->get('/gdc');
+        return $this->getUserUploadUrlFromGdcResponse($data);
     }
 
     /**

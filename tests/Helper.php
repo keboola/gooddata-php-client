@@ -188,7 +188,7 @@ class Helper
         }
         return self::$lastUser;
     }
-    
+
     public static function getFilters($pid)
     {
         $result = self::getClient()->get("/gdc/md/$pid/query/userfilters");
@@ -260,7 +260,7 @@ class Helper
         ]);
         return $result['uri'];
     }
-    
+
     public static function loadData($pid)
     {
         $dirName = uniqid();
