@@ -232,7 +232,7 @@ class ProjectsTest extends AbstractClientTest
         $result = $projects->inviteUser($pid, $user['email']);
         $this->assertSame(true, $result);
     }
-    
+
     public function testProjectsCancelInvitation()
     {
         $pid = Helper::getSomeProject();
@@ -260,9 +260,8 @@ class ProjectsTest extends AbstractClientTest
         foreach ($result['invitations'] as $r) {
             if ($email == $r['invitation']['content']['email']) {
                 $invitationFound = true;
-                $this->assertEquals('CANCELED', $r['invitation']['content']['status']);
             }
         }
-        $this->assertTrue($invitationFound);
+        $this->assertFalse($invitationFound);
     }
 }
