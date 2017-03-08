@@ -323,10 +323,11 @@ class Projects
             if (strtolower($r['invitation']['content']['email']) != strtolower($email)) {
                 continue;
             }
-            if ($r['invitation']['content']['status'] == 'CANCELED') {
-                continue;
+            try {
+                $this->client->delete($r['invitation']['links']['self']);
+            } catch (Exception $e) {
+                // Ignore
             }
-            $this->client->delete($r['invitation']['links']['self']);
         }
     }
 }
