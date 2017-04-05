@@ -92,6 +92,11 @@ class ProjectModel
                             );
                         }
 
+                        if (!count($lessDestructive) && count($moreDestructive)) {
+                            $lessDestructive = $moreDestructive;
+                            $moreDestructive = [];
+                        }
+
                         return [
                             'moreDestructiveMaql' => $moreDestructive,
                             'lessDestructiveMaql' => $lessDestructive,
