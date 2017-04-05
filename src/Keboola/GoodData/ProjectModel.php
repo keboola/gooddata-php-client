@@ -229,6 +229,9 @@ class ProjectModel
 
         $update = $this->diff($pid, $model);
 
+        if (!count($update['moreDestructiveMaql'])) {
+            $update['moreDestructiveMaql'] = $update['lessDestructiveMaql'];
+        }
         if (count($update['moreDestructiveMaql'])) {
             foreach ($update['moreDestructiveMaql'] as $m) {
                 $this->client->getDatasets()->executeMaql($pid, $m);
