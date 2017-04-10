@@ -275,6 +275,6 @@ class Datasets
             }
         }
 
-    return $manifest;
-}
+        return $manifest;
+    }
 }
