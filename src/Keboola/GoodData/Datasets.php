@@ -29,7 +29,7 @@ class Datasets
     {
         $attr = $this->client->get($this->getUriForIdentifier($pid, $attribute));
         $result = $this->client->get($attr['attribute']['content']['displayForms'][0]['links']['elements']);
-            //. '?filter='.urlencode($value));
+        //. '?filter='.urlencode($value));
 
         if (!count($result['attributeElements']['elements'])) {
             throw new Exception("Value '$value' of attribute '$attribute' not found in project '$pid'");
@@ -84,50 +84,72 @@ class Datasets
         $this->executeMaql($pid, $maql);
     }
 
-    public function loadData($pid, $dirName)
+    private function createEtlTask($pid, $dirName)
     {
         $uri = "/gdc/md/$pid/etl/pull2";
         $result = $this->client->post($uri, ['pullIntegration' => $dirName]);
 
-        if (isset($result['pull2Task']['links']['poll'])) {
-            $try = 1;
-            do {
-                sleep(10 * $try);
-                $taskResponse = $this->client->get($result['pull2Task']['links']['poll']);
-
-                if (!isset($taskResponse['wTaskStatus']['status'])) {
-                    throw Exception::unexpectedResponseError(
-                        'ETL task could not be checked',
-                        'GET',
-                        $result['pull2Task']['links']['poll'],
-                        $taskResponse
-                    );
-                }
-
-                $try++;
-            } while ($taskResponse['wTaskStatus']['status'] == 'RUNNING');
-
-            if ($taskResponse['wTaskStatus']['status'] == 'ERROR') {
-                $errors = [];
-                if (isset($taskResponse['messages'])) {
-                    foreach ($taskResponse['messages'] as $m) {
-                        if (isset($m['error'])) {
-                            $errors[] = Exception::parseMessage($m['error']);
-                        }
-                    }
-                }
-                if (isset($taskResponse['wTaskStatus']['messages'])) {
-                    foreach ($taskResponse['wTaskStatus']['messages'] as $m) {
-                        if (isset($m['error'])) {
-                            $errors[] = Exception::parseMessage($m['error']);
-                        }
-                    }
-                }
-                throw new Exception($errors);
-            }
-            return isset($taskResponse['messages']) ? $taskResponse['messages'] : [];
-        } else {
+        if (!isset($result['pull2Task']['links']['poll'])) {
             throw Exception::unexpectedResponseError('ETL task failed', 'POST', $uri, $result);
+        }
+
+        return $result['pull2Task']['links']['poll'];
+    }
+
+    private function pollEtlTask($uri)
+    {
+        $try = 1;
+        do {
+            sleep(10 * $try);
+            $taskResponse = $this->client->get($uri);
+
+            if (!isset($taskResponse['wTaskStatus']['status'])) {
+                throw Exception::unexpectedResponseError(
+                    'ETL task could not be checked',
+                    'GET',
+                    $uri,
+                    $taskResponse
+                );
+            }
+
+            $try++;
+        } while ($taskResponse['wTaskStatus']['status'] == 'RUNNING');
+
+        if ($taskResponse['wTaskStatus']['status'] == 'ERROR') {
+            $errors = [];
+            if (isset($taskResponse['messages'])) {
+                foreach ($taskResponse['messages'] as $m) {
+                    if (isset($m['error'])) {
+                        $errors[] = Exception::parseMessage($m['error']);
+                    }
+                }
+            }
+            if (isset($taskResponse['wTaskStatus']['messages'])) {
+                foreach ($taskResponse['wTaskStatus']['messages'] as $m) {
+                    if (isset($m['error'])) {
+                        $errors[] = Exception::parseMessage($m['error']);
+                    }
+                }
+            }
+            throw new Exception($errors);
+        }
+        return isset($taskResponse['messages']) ? $taskResponse['messages'] : [];
+    }
+
+    public function loadData($pid, $dirName)
+    {
+        $pollLink = $this->createEtlTask($pid, $dirName);
+
+        try {
+            return $this->pollEtlTask($pollLink);
+        } catch (Exception $e) {
+            if ($e->getCode() == 404) {
+                // If ETL task was started just before maintenance, then ETL could expire sooner then the maintenance
+                // ends. So we create the task once more.
+                $pollLink = $this->createEtlTask($pid, $dirName);
+                return $this->pollEtlTask($pollLink);
+            }
+            throw $e;
         }
     }
 
@@ -253,6 +275,6 @@ class Datasets
             }
         }
 
-        return $manifest;
-    }
+    return $manifest;
+}
 }
