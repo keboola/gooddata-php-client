@@ -66,8 +66,10 @@ class TimeDimension
         file_put_contents("$tmpFolderDimension/upload_info.json", $timeDimensionManifest);
         copy(__DIR__ . '/time-dimension.csv', "$tmpFolderDimension/$dimensionName.csv");
         $webDav->createFolder($tmpFolderNameDimension);
-        $webDav->upload("$tmpFolderDimension/upload_info.json", $tmpFolderNameDimension);
-        $webDav->upload("$tmpFolderDimension/$dimensionName.csv", $tmpFolderNameDimension);
+        $webDav->uploadZip(
+            ["$tmpFolderDimension/upload_info.json", "$tmpFolderDimension/$dimensionName.csv"],
+            $tmpFolderNameDimension
+        );
 
 
         // Run ETL task of time dimensions

@@ -8,12 +8,12 @@
 
 namespace Keboola\GoodData;
 
-use Guzzle\Http\EntityBody;
 use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
+use Symfony\Component\Process\Process;
 
 class WebDav
 {
@@ -98,21 +98,47 @@ class WebDav
 
         $fileUri = "$davFolder/{$fileInfo['basename']}";
         try {
-            $body = EntityBody::factory(fopen($file, 'r'));
-            $body->compress('gzip');
-            $this->client->request('PUT', $fileUri, ['body' => $body]);
+            $this->client->put($fileUri, [
+                'body' => \GuzzleHttp\Psr7\stream_for(fopen($file, 'r'))
+            ]);
         } catch (Exception $e) {
             throw new Exception("Error uploading file to WebDav '$fileUri'. " . $e->getMessage(), $e->getCode(), $e);
         }
     }
 
-    public function get($file)
+    public function uploadZip(array $files, $davFolder)
+    {
+        $escapedFiles = [];
+        foreach ($files as $file) {
+            if (!file_exists($file)) {
+                throw new Exception("File '$file' to be uploaded to WebDav does not exist.");
+            }
+            $escapedFiles[] = escapeshellarg($file);
+        }
+
+        $zipFile = sys_get_temp_dir() . '/' . uniqid(null, true) . '.zip';
+
+        $process = new Process(sprintf('zip -j %s %s', escapeshellarg($zipFile), implode(' ', $escapedFiles)));
+        $process->setTimeout(null);
+        $process->run();
+        if (!$process->isSuccessful()) {
+            throw new \Exception('Zip compression failed:' . $process->getErrorOutput());
+        }
+
+        $this->client->put("$davFolder/upload.zip", [
+            'body' => \GuzzleHttp\Psr7\stream_for(fopen($zipFile, 'r'))
+        ]);
+    }
+
+    public function get($file, $destination = null)
     {
         try {
-            $response = $this->client->request('GET', $file, ['headers' => ['Accept-Encoding' => 'gzip']]);
-            $body = EntityBody::factory($response->getBody());
-            $body->uncompress('gzip');
-            return (string)$body;
+            $options = ['headers' => ['Accept-Encoding' => 'gzip']];
+            if ($destination) {
+                $options['sink'] = $destination;
+            }
+            $response = $this->client->request('GET', $file, $options);
+            return $destination ? null : (string)$response->getBody();
         } catch (Exception $e) {
             throw new Exception("Error getting file '$file' from WebDav'. " . $e->getMessage(), $e->getCode(), $e);
         }

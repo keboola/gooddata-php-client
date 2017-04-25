@@ -7,6 +7,7 @@
 namespace Keboola\GoodData\Test;
 
 use Keboola\GoodData\WebDav;
+use Symfony\Component\Process\Process;
 
 class WebDavTest extends \PHPUnit_Framework_TestCase
 {
@@ -49,6 +50,31 @@ class WebDavTest extends \PHPUnit_Framework_TestCase
         $this->assertCount(1, $result);
         $this->assertFalse(in_array(basename($file1), $result));
         $this->assertTrue(in_array(basename($file2), $result));
+    }
+
+    public function testWebDavUploadZip()
+    {
+        $folder = uniqid();
+        $this->client->createFolder($folder);
+        $this->assertTrue($this->client->fileExists($folder));
+
+        $file1 = tempnam(sys_get_temp_dir(), uniqid());
+        $file2 = tempnam(sys_get_temp_dir(), uniqid());
+        $this->client->uploadZip([$file1, $file2], $folder);
+        $this->assertTrue($this->client->fileExists("$folder/upload.zip"));
+
+        $outZip = sys_get_temp_dir() . '/' . uniqid() . '.zip';
+        $outDir = sys_get_temp_dir() . '/' . uniqid();
+        mkdir($outDir);
+        $this->client->get("$folder/upload.zip", $outZip);
+        $process = new Process(sprintf('unzip %s -d %s', escapeshellarg($outZip), escapeshellarg($outDir)));
+        $process->setTimeout(null);
+        $process->run();
+        $this->assertTrue($process->isSuccessful());
+        $dir = scandir($outDir);
+        $this->assertCount(4, $dir);
+        $this->assertContains(basename($file1), $dir);
+        $this->assertContains(basename($file2), $dir);
     }
 
     public function testWebDavSaveLogs()
