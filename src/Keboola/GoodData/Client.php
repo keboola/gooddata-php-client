@@ -123,6 +123,11 @@ class Client
         ], $this->guzzleOptions));
     }
 
+    public function getBaseUri()
+    {
+        return $this->guzzleOptions['base_uri'];
+    }
+
     public function getUsername()
     {
         return $this->username;
