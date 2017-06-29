@@ -49,8 +49,7 @@ class TimeDimension
     public function loadData($pid, $name, $tmpDir)
     {
         // Upload to WebDav
-        $webDavUri = ($this->gdClient->getBaseUri() == 'https://analytics.ytica.com')
-            ? 'https://analytics.ytica.com/gdc/uploads' : $this->gdClient->getUserUploadUrl();
+        $webDavUri = $this->gdClient->getUserUploadUrl();
         $webDav = new WebDav(
             $this->gdClient->getUsername(),
             $this->gdClient->getPassword(),
