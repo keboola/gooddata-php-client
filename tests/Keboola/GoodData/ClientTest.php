@@ -14,6 +14,7 @@ class ClientTest extends AbstractClientTest
     public function testGoodDataClientJsonLoginBadUsername()
     {
         $client = new Client(KBGDC_API_URL);
+        $client->setUserAgent($this->getPackageName(), $this->getGitHash());
         try {
             $client->login(uniqid(), KBGDC_PASSWORD);
             $this->fail();
@@ -31,6 +32,7 @@ class ClientTest extends AbstractClientTest
     public function testGoodDataClientJsonLoginBadPassword()
     {
         $client = new Client(KBGDC_API_URL);
+        $client->setUserAgent($this->getPackageName(), $this->getGitHash());
         try {
             $client->login(KBGDC_USERNAME, uniqid());
             $this->fail();

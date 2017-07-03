@@ -72,6 +72,7 @@ class Client
 
     public function __construct($url = null, $logger = null, $loggerFormatter = null, array $options = [])
     {
+        $options = array_replace_recursive(self::DEFAULT_CLIENT_SETTINGS, $options);
         $options['base_uri'] = $url ?: self::API_URL;
         $this->guzzleOptions = $options;
         if ($logger) {
@@ -155,6 +156,11 @@ class Client
         }
         $this->guzzleOptions['base_uri'] = $url;
         $this->initClient();
+    }
+
+    public function setUserAgent($product, $version)
+    {
+        $this->guzzleOptions['headers']['User-Agent'] = "$product/$version";
     }
 
 
@@ -291,8 +297,8 @@ class Client
         $curlErrorCount = 0;
         do {
             try {
-                $guzzle = new \GuzzleHttp\Client(['base_uri' => $this->guzzleOptions['base_uri']]);
-                $response = $guzzle->request('GET', '/gdc/ping', self::DEFAULT_CLIENT_SETTINGS);
+                $guzzle = new \GuzzleHttp\Client($this->guzzleOptions);
+                $response = $guzzle->request('GET', '/gdc/ping');
                 return $response->getStatusCode() != 503;
             } catch (ServerException $e) {
                 return false;
@@ -327,7 +333,7 @@ class Client
     {
         $startTime = time();
 
-        $options = self::DEFAULT_CLIENT_SETTINGS;
+        $options = [];
         if ($params) {
             if ($method == 'GET' || $method == 'DELETE') {
                 $options['query'] = $params;
@@ -370,13 +376,14 @@ class Client
         $this->refreshToken();
         $startTime = time();
 
-        $options = self::DEFAULT_CLIENT_SETTINGS;
-        $options['timeout'] = 0;
-        $options['sink'] = $filename;
-        $options['headers'] = array_replace($options['headers'], [
-            'accept' => 'text/csv',
-            'accept-charset' => 'utf-8'
-        ]);
+        $options = [
+            'timeout' => 0,
+            'sink' => $filename,
+            'headers' => [
+                'accept' => 'text/csv',
+                'accept-charset' => 'utf-8'
+            ]
+        ];
 
         try {
             $response = $this->guzzle->get($uri, $options);
