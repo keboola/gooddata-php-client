@@ -6,7 +6,6 @@
  */
 namespace Keboola\GoodData;
 
-use Guzzle\Common\Exception\RuntimeException;
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Exception\ServerException;
@@ -386,6 +385,7 @@ class Client
     {
         $this->refreshToken();
         $startTime = time();
+
         $options = array_replace_recursive($this->guzzleOptions, [
             'timeout' => 0,
             'sink' => $filename,
