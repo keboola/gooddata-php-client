@@ -308,7 +308,11 @@ class Client
         $errorCount = 0;
         do {
             try {
+<<<<<<< HEAD
                 $guzzle = new \GuzzleHttp\Client($this->guzzleOptions);
+=======
+                $guzzle = new \GuzzleHttp\Client(['base_uri' => $this->guzzleOptions['base_uri']]);
+>>>>>>> :zap: Add user agent to GD API calls
                 $response = $guzzle->request('GET', '/gdc/ping');
                 return $response->getStatusCode() != 503;
             } catch (ServerException $e) {
@@ -347,7 +351,11 @@ class Client
     {
         $startTime = time();
 
+<<<<<<< HEAD
         $options = $this->guzzleOptions;
+=======
+        $options = [];
+>>>>>>> :zap: Add user agent to GD API calls
         if ($params) {
             if ($method == 'GET' || $method == 'DELETE') {
                 $options['query'] = $params;
@@ -389,6 +397,7 @@ class Client
     {
         $this->refreshToken();
         $startTime = time();
+<<<<<<< HEAD
         $options = array_replace_recursive($this->guzzleOptions, [
             'timeout' => 0,
             'sink' => $filename,
@@ -397,6 +406,17 @@ class Client
                 'accept-charset' => 'utf-8'
             ]
         ]);
+=======
+
+        $options = [
+            'timeout' => 0,
+            'sink' => $filename,
+            'headers' => array_replace($this->guzzleOptions['headers'], [
+                'accept' => 'text/csv',
+                'accept-charset' => 'utf-8'
+            ])
+        ];
+>>>>>>> :zap: Add user agent to GD API calls
 
         try {
             $response = $this->guzzle->get($uri, $options);
