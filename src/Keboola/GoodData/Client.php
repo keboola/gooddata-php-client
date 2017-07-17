@@ -473,11 +473,20 @@ class Client
         $data = [
             'request' => "$method {$this->guzzle->getConfig('base_uri')}$uri",
             'params' => $params,
-            'response' => $response ? [
-                'status' => $response->getStatusCode(),
-                'body' => json_decode($response->getBody(), true)
-            ] : null
+            'response' => null
         ];
+        if ($response) {
+            try {
+                $body = \GuzzleHttp\json_decode($response->getBody(), true);
+                $body = $this->cleanForLog(['password', 'authorizationToken'], $body);
+            } catch (\InvalidArgumentException $e) {
+                $body = (string)$response->getBody();
+            }
+            $data['response'] = [
+                'status' => $response->getStatusCode(),
+                'body' => $body
+            ];
+        }
         if ($duration) {
             $data['duration'] = $duration;
         }
@@ -485,12 +494,15 @@ class Client
         $this->logger->debug(json_encode(array_merge($this->logData, $data)));
     }
 
-    private function cleanForLog($find, $array) {
-        foreach ($array as $key => $val) {
-            if (in_array($key, $find)) {
-                $array[$key] = '***';
-            } elseif (is_array($val)) {
-                return $this->cleanForLog($find, $val);
+    private function cleanForLog($find, $array)
+    {
+        if (is_array($array)) {
+            foreach ($array as $key => $val) {
+                if (in_array($key, $find)) {
+                    $array[$key] = '***';
+                } elseif (is_array($val)) {
+                    return $this->cleanForLog($find, $val);
+                }
             }
         }
         return $array;
