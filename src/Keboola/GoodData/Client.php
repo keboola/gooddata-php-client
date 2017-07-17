@@ -116,9 +116,6 @@ class Client
         ));
 
         $handlerStack->push(Middleware::cookies());
-        if ($this->logger) {
-            $handlerStack->push(Middleware::log($this->logger, $this->loggerFormatter));
-        }
         $this->guzzle = new \GuzzleHttp\Client(array_merge([
             'handler' => $handlerStack,
             'cookies' => true
@@ -308,11 +305,7 @@ class Client
         $errorCount = 0;
         do {
             try {
-<<<<<<< HEAD
                 $guzzle = new \GuzzleHttp\Client($this->guzzleOptions);
-=======
-                $guzzle = new \GuzzleHttp\Client(['base_uri' => $this->guzzleOptions['base_uri']]);
->>>>>>> :zap: Add user agent to GD API calls
                 $response = $guzzle->request('GET', '/gdc/ping');
                 return $response->getStatusCode() != 503;
             } catch (ServerException $e) {
@@ -351,11 +344,7 @@ class Client
     {
         $startTime = time();
 
-<<<<<<< HEAD
         $options = $this->guzzleOptions;
-=======
-        $options = [];
->>>>>>> :zap: Add user agent to GD API calls
         if ($params) {
             if ($method == 'GET' || $method == 'DELETE') {
                 $options['query'] = $params;
@@ -397,7 +386,6 @@ class Client
     {
         $this->refreshToken();
         $startTime = time();
-<<<<<<< HEAD
         $options = array_replace_recursive($this->guzzleOptions, [
             'timeout' => 0,
             'sink' => $filename,
@@ -406,17 +394,6 @@ class Client
                 'accept-charset' => 'utf-8'
             ]
         ]);
-=======
-
-        $options = [
-            'timeout' => 0,
-            'sink' => $filename,
-            'headers' => array_replace($this->guzzleOptions['headers'], [
-                'accept' => 'text/csv',
-                'accept-charset' => 'utf-8'
-            ])
-        ];
->>>>>>> :zap: Add user agent to GD API calls
 
         try {
             $response = $this->guzzle->get($uri, $options);
@@ -491,24 +468,31 @@ class Client
             return;
         }
 
-        foreach ($params as $k => &$v) {
-            if ($k == 'password') {
-                $v = '***';
-            }
-        }
+        $params = $this->cleanForLog(['password', 'authorizationToken'], $params);
 
         $data = [
-            'request' => [
-                'params' => $params,
-                'response' => $response ? [
-                    'status' => $response->getStatusCode(),
-                    'body' => (string)$response->getBody()
-                ] : null
-            ],
-            'duration' => $duration,
-            'pid' => getmypid()
+            'request' => "$method {$this->guzzle->getConfig('base_uri')}$uri",
+            'params' => $params,
+            'response' => $response ? [
+                'status' => $response->getStatusCode(),
+                'body' => json_decode($response->getBody(), true)
+            ] : null
         ];
+        if ($duration) {
+            $data['duration'] = $duration;
+        }
 
-        $this->logger->debug("$method {$this->guzzle->getConfig('base_uri')}$uri", array_merge($this->logData, $data));
+        $this->logger->debug(json_encode(array_merge($this->logData, $data)));
+    }
+
+    private function cleanForLog($find, $array) {
+        foreach ($array as $key => $val) {
+            if (in_array($key, $find)) {
+                $array[$key] = '***';
+            } elseif (is_array($val)) {
+                return $this->cleanForLog($find, $val);
+            }
+        }
+        return $array;
     }
 }
