@@ -66,6 +66,7 @@ class ClientTest extends AbstractClientTest
             $this->client->get('/gdc/ping');
             $ping = true;
         } catch (\Exception $e) {
+            echo 'Ping failed due to ' . $e->getMessage().PHP_EOL;
             $ping = false;
         }
 
