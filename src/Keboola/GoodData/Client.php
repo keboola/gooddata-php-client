@@ -339,7 +339,7 @@ class Client
     {
         $startTime = time();
 
-        $options = [];
+        $options = $this->guzzleOptions;
         if ($params) {
             if ($method == 'GET' || $method == 'DELETE') {
                 $options['query'] = $params;
@@ -382,14 +382,14 @@ class Client
         $this->refreshToken();
         $startTime = time();
 
-        $options = [
+        $options = array_replace($this->guzzleOptions, [
             'timeout' => 0,
             'sink' => $filename,
             'headers' => [
                 'accept' => 'text/csv',
                 'accept-charset' => 'utf-8'
             ]
-        ];
+        ]);
 
         try {
             $response = $this->guzzle->get($uri, $options);
