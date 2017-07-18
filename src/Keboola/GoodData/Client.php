@@ -6,6 +6,7 @@
  */
 namespace Keboola\GoodData;
 
+use Guzzle\Common\Exception\RuntimeException;
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Exception\ServerException;
@@ -161,6 +162,11 @@ class Client
     public function setUserAgent($product, $version)
     {
         $this->guzzleOptions['headers']['User-Agent'] = "$product/$version";
+    }
+
+    public function setDebug($debug)
+    {
+        $this->guzzleOptions['debug'] = $debug;
     }
 
 
