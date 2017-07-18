@@ -7,7 +7,7 @@ sudo: true
 
 before_install:
   - sudo apt-get update -qq
-  - sudo apt-get install -y gnupg2
+  - sudo apt-get install -y gnupg2 libgpgme11-dev
 
 before_script:
   - pecl install gnupg
