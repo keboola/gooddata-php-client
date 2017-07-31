@@ -6,6 +6,7 @@
  */
 namespace Keboola\GoodData;
 
+use Guzzle\Common\Exception\RuntimeException;
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Exception\ServerException;
@@ -308,6 +309,9 @@ class Client
             } catch (ServerException $e) {
                 return false;
             } catch (\Exception $e) {
+                if ($e instanceof RuntimeException && strpos($e->getMessage(), 'No headers') === 0) {
+                    return false;
+                }
                 $errorCount++;
                 sleep(rand(1, 5));
             }
