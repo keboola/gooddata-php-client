@@ -299,7 +299,7 @@ class Client
 
     public function ping()
     {
-        $curlErrorCount = 0;
+        $errorCount = 0;
         do {
             try {
                 $guzzle = new \GuzzleHttp\Client($this->guzzleOptions);
@@ -307,11 +307,11 @@ class Client
                 return $response->getStatusCode() != 503;
             } catch (ServerException $e) {
                 return false;
-            } catch (ConnectException $e) {
-                $curlErrorCount++;
+            } catch (\Exception $e) {
+                $errorCount++;
                 sleep(rand(1, 5));
             }
-        } while ($curlErrorCount <= 5);
+        } while ($errorCount <= 5);
         return false;
     }
 
