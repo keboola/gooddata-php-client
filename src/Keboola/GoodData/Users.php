@@ -84,6 +84,7 @@ class Users
     public function updateUser($uid, $data)
     {
         $userData = $this->getUser($uid);
+        unset($userData['accountSetting']['links']);
         unset($userData['accountSetting']['login']);
         unset($userData['accountSetting']['email']);
         unset($userData['accountSetting']['effectiveIpWhitelist']);
