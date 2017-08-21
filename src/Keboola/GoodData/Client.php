@@ -169,6 +169,11 @@ class Client
         $this->guzzleOptions['debug'] = $debug;
     }
 
+    public function disableCheckDomain()
+    {
+        $this->guzzleOptions['headers']['X-GDC-CHECK-DOMAIN'] = 'false';
+    }
+
 
     public function getProjects()
     {
