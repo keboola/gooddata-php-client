@@ -22,7 +22,7 @@ class DateDimensions
         return "URN:{$template}:DATE";
     }
 
-    public function create($pid, $name, $identifier = null, $template = null)
+    public function exists($pid, $name, $identifier = null, $template = null)
     {
         if (!$identifier) {
             $identifier = Identifiers::getIdentifier($name);
@@ -37,8 +37,12 @@ class DateDimensions
         foreach ($call['dataSetsInfo']['sets'] as $r) {
             $existingDataSets[] = $r['meta']['identifier'];
         }
+        return in_array(Identifiers::getDateDimensionId($name, $template), $existingDataSets);
+    }
 
-        if (!in_array(Identifiers::getDateDimensionId($name, $template), $existingDataSets)) {
+    public function create($pid, $name, $identifier = null, $template = null)
+    {
+        if (!$this->exists($pid, $name, $identifier, $template)) {
             $this->client->getDatasets()->executeMaql($pid, sprintf(
                 'INCLUDE TEMPLATE "%s" MODIFY (IDENTIFIER "%s", TITLE "%s");',
                 self::getTemplateUrn($template),
