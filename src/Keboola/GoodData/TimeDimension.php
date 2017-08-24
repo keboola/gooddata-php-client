@@ -25,7 +25,7 @@ class TimeDimension
         return sprintf('tm.dt.%s.%s', Identifiers::getIdentifier($tableName), Identifiers::getIdentifier($attrName));
     }
 
-    public function create($pid, $name, $identifier = null)
+    public function exists($pid, $name, $identifier = null)
     {
         if (!$identifier) {
             $identifier = Identifiers::getIdentifier($name);
@@ -40,8 +40,12 @@ class TimeDimension
         foreach ($call['dataSetsInfo']['sets'] as $r) {
             $existingDataSets[] = $r['meta']['identifier'];
         }
+        return in_array(self::getTimeDimensionIdentifier($name), $existingDataSets);
+    }
 
-        if (!in_array(self::getTimeDimensionIdentifier($name), $existingDataSets)) {
+    public function create($pid, $name, $identifier = null)
+    {
+        if (!$this->exists($pid, $name, $identifier)) {
             $this->gdClient->getDatasets()->executeMaql($pid, self::getCreateMaql($identifier, $name));
         }
     }
