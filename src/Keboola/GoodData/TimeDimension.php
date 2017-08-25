@@ -25,6 +25,16 @@ class TimeDimension
         return sprintf('tm.dt.%s.%s', Identifiers::getIdentifier($tableName), Identifiers::getIdentifier($attrName));
     }
 
+    public function getDefaultIdentifier($name)
+    {
+        $identifier = Identifiers::getIdentifier($name);
+        if (!$identifier) {
+            throw new Exception("Identifier derived from dimension name '$name' is not valid. "
+                . "Choose other name or custom identifier.");
+        }
+        return $identifier;
+    }
+
     public function exists($pid, $name, $identifier = null)
     {
         if (!$identifier) {
@@ -45,6 +55,9 @@ class TimeDimension
 
     public function create($pid, $name, $identifier = null)
     {
+        if (!$identifier) {
+            $identifier = $this->getDefaultIdentifier($name);
+        }
         if (!$this->exists($pid, $name, $identifier)) {
             $this->gdClient->getDatasets()->executeMaql($pid, self::getCreateMaql($identifier, $name));
         }

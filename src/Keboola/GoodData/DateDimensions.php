@@ -22,16 +22,18 @@ class DateDimensions
         return "URN:{$template}:DATE";
     }
 
+    public function getDefaultIdentifier($name)
+    {
+        $identifier = Identifiers::getIdentifier($name);
+        if (!$identifier) {
+            throw new Exception("Identifier derived from dimension name '$name' is not valid. "
+                . "Choose other name or custom identifier.");
+        }
+        return $identifier;
+    }
+
     public function exists($pid, $name, $identifier = null, $template = null)
     {
-        if (!$identifier) {
-            $identifier = Identifiers::getIdentifier($name);
-            if (!$identifier) {
-                throw new Exception("Identifier derived from dimension name '$name' is not valid. "
-                    . "Choose other name or custom identifier.");
-            }
-        }
-
         $call = $this->client->get("/gdc/md/$pid/data/sets");
         $existingDataSets = [];
         foreach ($call['dataSetsInfo']['sets'] as $r) {
@@ -42,6 +44,9 @@ class DateDimensions
 
     public function create($pid, $name, $identifier = null, $template = null)
     {
+        if (!$identifier) {
+            $identifier = $this->getDefaultIdentifier($name);
+        }
         if (!$this->exists($pid, $name, $identifier, $template)) {
             $this->client->getDatasets()->executeMaql($pid, sprintf(
                 'INCLUDE TEMPLATE "%s" MODIFY (IDENTIFIER "%s", TITLE "%s");',
