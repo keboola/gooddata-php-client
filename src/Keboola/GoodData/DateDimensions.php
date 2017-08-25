@@ -32,7 +32,7 @@ class DateDimensions
         return $identifier;
     }
 
-    public function exists($pid, $name, $identifier = null, $template = null)
+    public function exists($pid, $name, $template = null)
     {
         $call = $this->client->get("/gdc/md/$pid/data/sets");
         $existingDataSets = [];
@@ -42,18 +42,23 @@ class DateDimensions
         return in_array(Identifiers::getDateDimensionId($name, $template), $existingDataSets);
     }
 
+    public function executeCreateMaql($pid, $name, $identifier, $template = null)
+    {
+        $this->client->getDatasets()->executeMaql($pid, sprintf(
+            'INCLUDE TEMPLATE "%s" MODIFY (IDENTIFIER "%s", TITLE "%s");',
+            self::getTemplateUrn($template),
+            $identifier,
+            $name
+        ));
+    }
+
     public function create($pid, $name, $identifier = null, $template = null)
     {
         if (!$identifier) {
             $identifier = $this->getDefaultIdentifier($name);
         }
-        if (!$this->exists($pid, $name, $identifier, $template)) {
-            $this->client->getDatasets()->executeMaql($pid, sprintf(
-                'INCLUDE TEMPLATE "%s" MODIFY (IDENTIFIER "%s", TITLE "%s");',
-                self::getTemplateUrn($template),
-                $identifier,
-                $name
-            ));
+        if (!$this->exists($pid, $name, $template)) {
+            $this->executeCreateMaql($pid, $name, $identifier, $template);
         }
     }
 }
