@@ -53,13 +53,18 @@ class TimeDimension
         return in_array(self::getTimeDimensionIdentifier($name), $existingDataSets);
     }
 
+    public function executeCreateMaql($pid, $name, $identifier)
+    {
+        $this->gdClient->getDatasets()->executeMaql($pid, self::getCreateMaql($identifier, $name));
+    }
+
     public function create($pid, $name, $identifier = null)
     {
         if (!$identifier) {
             $identifier = $this->getDefaultIdentifier($name);
         }
         if (!$this->exists($pid, $name, $identifier)) {
-            $this->gdClient->getDatasets()->executeMaql($pid, self::getCreateMaql($identifier, $name));
+            $this->executeCreateMaql($pid, $name, $identifier);
         }
     }
 
