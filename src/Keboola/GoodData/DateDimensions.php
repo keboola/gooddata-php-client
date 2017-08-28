@@ -22,7 +22,7 @@ class DateDimensions
         return "URN:{$template}:DATE";
     }
 
-    public function getDefaultIdentifier($name)
+    public static function getDefaultIdentifier($name)
     {
         $identifier = Identifiers::getIdentifier($name);
         if (!$identifier) {
@@ -32,7 +32,7 @@ class DateDimensions
         return $identifier;
     }
 
-    public function getDefaultIdentifierForReference($dimension, $template = null)
+    public static function getDefaultIdentifierForReference($dimension, $template = null)
     {
         $result = Identifiers::getIdentifier($dimension);
         if (!empty($template)) {
