@@ -32,6 +32,18 @@ class DateDimensions
         return $identifier;
     }
 
+    public function getDefaultIdentifierForReference($dimension, $template = null)
+    {
+        $result = Identifiers::getIdentifier($dimension);
+        if (!empty($template)) {
+            $templateId = strtolower($template);
+            if ($templateId != 'gooddata') {
+                $result .= ".$templateId";
+            }
+        }
+        return $result;
+    }
+
     public function exists($pid, $name, $template = null)
     {
         $call = $this->client->get("/gdc/md/$pid/data/sets");
