@@ -35,7 +35,7 @@ class Datasets
             throw new Exception("Value '$value' of attribute '$attribute' not found in project '$pid'");
         }
         foreach ($result['attributeElements']['elements'] as $e) {
-            if ($e['title'] == $value) {
+            if ((string)$e['title'] === (string)$value) {
                 return $e['uri'];
             }
         }
