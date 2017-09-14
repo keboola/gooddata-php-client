@@ -17,7 +17,7 @@ use Symfony\Component\Process\Process;
 
 class WebDav
 {
-    const RETRIES_COUNT = 5;
+    const RETRIES_COUNT = 10;
     const MAINTENANCE_RETRIES_COUNT = 60;
     const URL = 'https://secure.gooddata.com/gdc/uploads/';
 
