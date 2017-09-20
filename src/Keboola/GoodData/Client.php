@@ -6,7 +6,7 @@
  */
 namespace Keboola\GoodData;
 
-use GuzzleHttp\Exception\ConnectException;
+use Guzzle\Common\Exception\RuntimeException;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Exception\ServerException;
 use GuzzleHttp\HandlerStack;
