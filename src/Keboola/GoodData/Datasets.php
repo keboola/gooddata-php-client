@@ -131,7 +131,7 @@ class Datasets
                     }
                 }
             }
-            throw new Exception($errors);
+            throw new Exception(json_encode($errors));
         }
         return isset($taskResponse['messages']) ? $taskResponse['messages'] : [];
     }
