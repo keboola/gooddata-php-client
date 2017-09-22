@@ -336,6 +336,29 @@ class Client
         return $this->getUserUploadUrlFromGdcResponse($data);
     }
 
+    public function createDateDimension($params)
+    {
+        foreach (['pid', 'name'] as $param) {
+            if (!isset($params[$param])) {
+                throw new \Exception("Parameter $param is required");
+            }
+        }
+
+        $identifier = !empty($params['identifier']) ? $params['identifier']
+            : $this->getDateDimensions()->getDefaultIdentifier($params['name']);
+        $template = !empty($params['template']) ? $params['template'] : null;
+        if (!$this->getDateDimensions()->exists($params['pid'], $params['name'], $template)) {
+            $this->getDateDimensions()->executeCreateMaql($params['pid'], $params['name'], $identifier, $template);
+        }
+        if (!empty($params['includeTime'])) {
+            $td = new \Keboola\GoodData\TimeDimension($this);
+            if (!$td->exists($params['pid'], $params['name'], $identifier)) {
+                $td->executeCreateMaql($params['pid'], $params['name'], $identifier);
+                $td->loadData($params['pid'], $params['name'], sys_get_temp_dir());
+            }
+        }
+    }
+
     /**
      * @return ResponseInterface
      */
