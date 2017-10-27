@@ -93,11 +93,6 @@ class Projects
         $this->client->delete("/gdc/projects/$pid");
     }
 
-    public function leaveProject($pid, $uid)
-    {
-        return $this->client->delete("/gdc/projects/$pid/users/$uid");
-    }
-
     public function getUsersForProjectYield($pid, $limit = 1000, $offset = 0)
     {
         $continue = true;
@@ -250,6 +245,16 @@ class Projects
             }
             throw Exception::error($uri, 'Error in addition to project: ' . implode('; ', $errors));
         }
+    }
+
+    public function removeUser($pid, $uid)
+    {
+        return $this->client->delete("/gdc/projects/$pid/users/$uid");
+    }
+
+    public function leaveProject($pid, $uid)
+    {
+        return $this->removeUser($pid, $uid);
     }
 
     public function inviteUser($pid, $email, $role = Projects::ROLE_ADMIN, $filters = [])
