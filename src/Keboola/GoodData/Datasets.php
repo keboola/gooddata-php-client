@@ -239,7 +239,9 @@ class Datasets
                     $manifest['dataSetSLIManifest']['parts'][] = [
                         'columnName' => $columnName,
                         'populates' => [
-                            "{$column['identifier']}.date.mmddyyyy"
+                            (isset($column['template']) && $column['template'] == 'custom')
+                                ? "{$column['identifier']}.date.day.us.mm_dd_yyyy"
+                                : "{$column['identifier']}.date.mmddyyyy"
                         ],
                         'constraints' => [
                             'date' => (string)$column['format']
