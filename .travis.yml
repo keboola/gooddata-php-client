@@ -16,4 +16,4 @@ before_script:
 
 script:
   - ./vendor/bin/phpcs --standard=psr2 -n --ignore=vendor .
-  - travis_wait 30 ./vendor/bin/phpunit
+  - travis_wait 40 ./vendor/bin/phpunit
