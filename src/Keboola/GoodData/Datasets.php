@@ -143,7 +143,7 @@ class Datasets
         try {
             return $this->pollEtlTask($pollLink);
         } catch (Exception $e) {
-            if ($e->getCode() == 404) {
+            if ($e->getCode() == 404 || strpos($e->getMessage(), 'not found') !== false) {
                 // If ETL task was started just before maintenance, then ETL could expire sooner then the maintenance
                 // ends. So we create the task once more.
                 $pollLink = $this->createEtlTask($pid, $dirName);
