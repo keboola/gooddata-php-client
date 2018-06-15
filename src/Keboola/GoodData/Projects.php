@@ -40,13 +40,13 @@ class Projects
         return "/gdc/projects/$pid";
     }
 
-    public function createProject($title, $authToken, $description = null, $testing = false)
+    public function createProject($title, $authToken, $description = null, $testing = false, $driver = 'Pg')
     {
         $result = $this->client->post('/gdc/projects', [
             'project' => [
                 'content' => [
                     'guidedNavigation' => 1,
-                    'driver' => 'Pg',
+                    'driver' => $driver,
                     'authorizationToken' => $authToken,
                     'environment' => $testing ? 'TESTING' : 'PRODUCTION'
                 ],
