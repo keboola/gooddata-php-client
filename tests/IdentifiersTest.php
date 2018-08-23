@@ -8,7 +8,7 @@ namespace Keboola\GoodData\Test;
 
 use Keboola\GoodData\Identifiers;
 
-class IdentifiersTest extends \PHPUnit_Framework_TestCase
+class IdentifiersTest extends \PHPUnit\Framework\TestCase
 {
     public function testIdentifiersGetIdentifier()
     {

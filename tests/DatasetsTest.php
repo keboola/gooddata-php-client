@@ -113,9 +113,9 @@ class DatasetsTest extends AbstractClientTest
         $dirName = uniqid();
         $webDav = new WebDav(KBGDC_USERNAME, KBGDC_PASSWORD);
         $webDav->createFolder($dirName);
-        $webDav->upload(__DIR__.'/../../data/categories.csv', $dirName);
-        $webDav->upload(__DIR__.'/../../data/products.csv', $dirName);
-        $webDav->upload(__DIR__.'/../../data/upload_info.json', $dirName);
+        $webDav->upload(__DIR__ . '/data/categories.csv', $dirName);
+        $webDav->upload(__DIR__ . '/data/products.csv', $dirName);
+        $webDav->upload(__DIR__ . '/data/upload_info.json', $dirName);
         $this->client->getDatasets()->loadData($pid, $dirName);
         $result = $this->client->get("/gdc/md/$pid/data/sets");
         $categoriesFound = false;
@@ -133,7 +133,7 @@ class DatasetsTest extends AbstractClientTest
         $this->assertTrue($categoriesFound);
         $this->assertTrue($productsFound);
     }
-    
+
     public function testGetDataLoadManifest()
     {
         $configuration = [
