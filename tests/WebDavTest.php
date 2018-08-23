@@ -9,7 +9,7 @@ namespace Keboola\GoodData\Test;
 use Keboola\GoodData\WebDav;
 use Symfony\Component\Process\Process;
 
-class WebDavTest extends \PHPUnit_Framework_TestCase
+class WebDavTest extends \PHPUnit\Framework\TestCase
 {
     protected $client;
 

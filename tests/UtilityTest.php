@@ -8,7 +8,7 @@ namespace Keboola\GoodData\Test;
 
 use Keboola\GoodData\Utility;
 
-class UtilityTest extends \PHPUnit_Framework_TestCase
+class UtilityTest extends \PHPUnit\Framework\TestCase
 {
     public function testUtilitySeemsUtf8()
     {

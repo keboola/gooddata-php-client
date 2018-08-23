@@ -114,7 +114,7 @@ class TimeDimension
 
     public static function getCreateMaql($identifier, $name)
     {
-        $maql  = file_get_contents(__DIR__.'/time-dimension.maql');
+        $maql  = file_get_contents(__DIR__ . '/time-dimension.maql');
         $maql = str_replace('%ID%', $identifier, $maql);
         $maql = str_replace('%NAME%', $name, $maql);
 
@@ -123,7 +123,7 @@ class TimeDimension
 
     public static function getLDM($identifier, $title)
     {
-        $model = file_get_contents(__DIR__.'/time-dimension-ldm.json');
+        $model = file_get_contents(__DIR__ . '/time-dimension-ldm.json');
         $model = str_replace('%ID%', $identifier, $model);
         $model = str_replace('%TITLE%', $title, $model);
         return json_decode($model, true);
@@ -131,7 +131,7 @@ class TimeDimension
 
     public static function getDataLoadManifest($dimensionId)
     {
-        $manifest = file_get_contents(__DIR__.'/time-dimension-manifest.json');
+        $manifest = file_get_contents(__DIR__ . '/time-dimension-manifest.json');
         return str_replace('%NAME%', $dimensionId, $manifest);
     }
 }

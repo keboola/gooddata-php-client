@@ -41,9 +41,9 @@ class ReportsTest extends AbstractClientTest
         $dirName = uniqid();
         $webDav = new WebDav(KBGDC_USERNAME, KBGDC_PASSWORD);
         $webDav->createFolder($dirName);
-        $webDav->upload(__DIR__.'/../../data/products.csv', $dirName);
+        $webDav->upload(__DIR__ . '/data/products.csv', $dirName);
         $webDav->upload(Helper::getTemp()->getTmpFolder()."/categories.csv", $dirName);
-        $webDav->upload(__DIR__.'/../../data/upload_info.json', $dirName);
+        $webDav->upload(__DIR__ . '/data/upload_info.json', $dirName);
         Helper::getClient()->getDatasets()->loadData($pid, $dirName);
 
         $uri = Helper::createReport($pid);

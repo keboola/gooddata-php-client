@@ -11,7 +11,7 @@ use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\Request;
 use Keboola\GoodData\SSO;
 
-class SSOTest extends \PHPUnit_Framework_TestCase
+class SSOTest extends \PHPUnit\Framework\TestCase
 {
     protected $pid;
     protected $user;

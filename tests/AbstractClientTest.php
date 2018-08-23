@@ -8,13 +8,13 @@ namespace Keboola\GoodData\Test;
 
 use Keboola\GoodData\Client;
 
-abstract class AbstractClientTest extends \PHPUnit_Framework_TestCase
+abstract class AbstractClientTest extends \PHPUnit\Framework\TestCase
 {
     protected $client;
 
     public function getPackageName()
     {
-        $composer = \GuzzleHttp\json_decode(file_get_contents(__DIR__ . '/../../../composer.json'), true);
+        $composer = \GuzzleHttp\json_decode(file_get_contents(__DIR__ . '/../composer.json'), true);
         return str_replace('/', '-', $composer['name']);
     }
 

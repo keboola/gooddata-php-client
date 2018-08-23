@@ -8,7 +8,7 @@ namespace Keboola\GoodData\Test;
 
 use Keboola\GoodData\Exception;
 
-class ExceptionTest extends \PHPUnit_Framework_TestCase
+class ExceptionTest extends \PHPUnit\Framework\TestCase
 {
     public function testExceptionConstruct()
     {
