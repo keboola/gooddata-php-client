@@ -26,6 +26,11 @@ class SSO
 
     public function getUrl($user, $key, $provider, $targetUrl, $email, $validity = 86400, $keyPass = null)
     {
+        return $this->getClaims($user, $key, $provider, $targetUrl, $email, $validity, $keyPass)['link'];
+    }
+
+    public function getClaims($user, $key, $provider, $targetUrl, $email, $validity = 86400, $keyPass = null)
+    {
         $signData = json_encode(['email' => $email, 'validity' => time() + $validity]);
 
         $gpg = new Crypt_GPG();
@@ -41,12 +46,16 @@ class SSO
             throw new \Exception("Sso generation for user $email using admin $user failed, session id is empty.");
         }
 
-        return sprintf(
-            "%s/gdc/account/customerlogin?sessionId=%s&serverURL=%s&targetURL=%s",
-            $this->baseUri,
-            urlencode($result),
-            urlencode($provider),
-            urlencode($targetUrl)
-        );
+        return [
+            'encryptedClaims' => $result,
+            'ssoProvider' => $provider,
+            'link' => sprintf(
+                "%s/gdc/account/customerlogin?sessionId=%s&serverURL=%s&targetURL=%s",
+                $this->baseUri,
+                urlencode($result),
+                urlencode($provider),
+                urlencode($targetUrl)
+            ),
+        ];
     }
 }

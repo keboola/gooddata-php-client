@@ -59,13 +59,6 @@ class ClientTest extends AbstractClientTest
         }
 
         try {
-            $this->client->jsonRequest('GET', '/gdc/'.uniqid());
-            $this->fail();
-        } catch (Exception $e) {
-            $this->assertEquals(404, $e->getCode());
-        }
-
-        try {
             $this->client->jsonRequest('GET', '/gdc/projects/'.uniqid());
             $this->fail();
         } catch (Exception $e) {
