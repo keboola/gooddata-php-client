@@ -100,7 +100,7 @@ class Datasets
     {
         $try = 1;
         do {
-            sleep(rand(10, 20));
+            sleep(min(pow(2, $try), rand(15, 20)));
             $taskResponse = $this->client->get($uri);
 
             if (!isset($taskResponse['wTaskStatus']['status'])) {
