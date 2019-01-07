@@ -49,23 +49,6 @@ class ClientTest extends AbstractClientTest
         $this->assertEquals(KBGDC_USERNAME, $result['accountSetting']['login']);
     }
 
-    public function testGoodDataClientBadRequest()
-    {
-        try {
-            $this->client->jsonRequest('GET', '/gdc/account/profile/'.uniqid());
-            $this->fail();
-        } catch (Exception $e) {
-            $this->assertEquals(404, $e->getCode());
-        }
-
-        try {
-            $this->client->jsonRequest('GET', '/gdc/projects/'.uniqid());
-            $this->fail();
-        } catch (Exception $e) {
-            $this->assertEquals(404, $e->getCode());
-        }
-    }
-
     public function testGoodDataClientForbiddenRequest()
     {
         try {
