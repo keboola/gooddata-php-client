@@ -44,14 +44,17 @@ class DateDimensions
         return $result;
     }
 
-    public function exists($pid, $name, $template = null)
+    public function exists($pid, $name, $template = null, $customIdentifier = null)
     {
         $call = $this->client->get("/gdc/md/$pid/data/sets");
         $existingDataSets = [];
         foreach ($call['dataSetsInfo']['sets'] as $r) {
             $existingDataSets[] = $r['meta']['identifier'];
         }
-        return in_array(Identifiers::getDateDimensionId($name, $template), $existingDataSets);
+        return in_array(
+            Identifiers::getDateDimensionId($name, $template, $customIdentifier),
+            $existingDataSets
+        );
     }
 
     public function executeCreateMaql($pid, $name, $identifier, $template = null)
@@ -64,12 +67,10 @@ class DateDimensions
         ));
     }
 
-    public function create($pid, $name, $identifier = null, $template = null)
+    public function create($pid, $name, $customIdentifier = null, $template = null)
     {
-        if (!$identifier) {
-            $identifier = $this->getDefaultIdentifier($name);
-        }
-        if (!$this->exists($pid, $name, $template)) {
+        $identifier = $customIdentifier ?: $this->getDefaultIdentifier($name);
+        if (!$this->exists($pid, $name, $template, $customIdentifier)) {
             $this->executeCreateMaql($pid, $name, $identifier, $template);
         }
     }
