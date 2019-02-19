@@ -22,6 +22,25 @@ class DateDimensionTest extends AbstractClientTest
         $this->assertTrue(in_array(Identifiers::getDateDimensionId($name), $this->getDataSets($pid)));
     }
 
+    public function testCreateDateDimensionCustomIdentifier()
+    {
+        $pid = Helper::getSomeProject();
+        Helper::cleanUpProject($pid);
+
+        $name = 'd' . uniqid();
+        $identifier = 'customId' . rand(1, 128);
+        $this->client->createDateDimension([
+            'pid' => $pid,
+            'name' => $name,
+            'identifier' => $identifier,
+        ]);
+
+        $this->assertTrue(in_array(
+            Identifiers::getDateDimensionId($name, null, $identifier),
+            $this->getDataSets($pid)
+        ));
+    }
+
     public function testCreateDateDimensionTemplateDateOnly()
     {
         $pid = Helper::getSomeProject();

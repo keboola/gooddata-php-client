@@ -344,10 +344,10 @@ class Client
             }
         }
 
-        $identifier = !empty($params['identifier']) ? $params['identifier']
-            : $this->getDateDimensions()->getDefaultIdentifier($params['name']);
+        $customIdentifier = !empty($params['identifier']) ? $params['identifier'] : null;
+        $identifier = $customIdentifier ?: $this->getDateDimensions()->getDefaultIdentifier($params['name']);
         $template = !empty($params['template']) ? $params['template'] : null;
-        if (!$this->getDateDimensions()->exists($params['pid'], $params['name'], $template)) {
+        if (!$this->getDateDimensions()->exists($params['pid'], $params['name'], $template, $customIdentifier)) {
             $this->getDateDimensions()->executeCreateMaql($params['pid'], $params['name'], $identifier, $template);
         }
         if (!empty($params['includeTime'])) {

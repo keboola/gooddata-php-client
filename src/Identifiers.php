@@ -52,17 +52,18 @@ class Identifiers
             self::getIdentifier($attrName)
         );
     }
-    
+
     public static function getDateDimensionGrainId($name, $template = null)
     {
         $template = strtolower($template);
         return self::getIdentifier($name) . (($template && $template != 'gooddata') ? ".$template" : "");
     }
 
-    public static function getDateDimensionId($name, $template = null)
+    public static function getDateDimensionId($name, $template = null, $customIdentifier = null)
     {
         $template = strtolower($template);
-        return self::getIdentifier($name)
+        $identifier = $customIdentifier ?: self::getIdentifier($name);
+        return $identifier
             . (($template && $template != 'gooddata') ? '.' . $template : null) . '.dataset.dt';
     }
 }
