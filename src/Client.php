@@ -347,8 +347,13 @@ class Client
         $customIdentifier = !empty($params['identifier']) ? $params['identifier'] : null;
         $identifier = $customIdentifier ?: $this->getDateDimensions()->getDefaultIdentifier($params['name']);
         $template = !empty($params['template']) ? $params['template'] : null;
-        if (!$this->getDateDimensions()->exists($params['pid'], $params['name'], $template, $customIdentifier)) {
+        try {
             $this->getDateDimensions()->executeCreateMaql($params['pid'], $params['name'], $identifier, $template);
+        } catch (Exception $e) {
+            // Ignore exception if the dimension already exists in GoodData
+            if (strpos($e->getMessage(), 'already exist in metadata ') === false) {
+                throw $e;
+            }
         }
         if (!empty($params['includeTime'])) {
             $td = new \Keboola\GoodData\TimeDimension($this);
