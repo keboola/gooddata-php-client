@@ -13,7 +13,7 @@
     "require": {
         "php": ">=7.1",
         "ext-json": "*",
-        "psr/log": "~1.0.0",
+        "psr/log": "^1.0.0",
         "guzzlehttp/guzzle": "~6.0",
         "pear/crypt_gpg": "^1.6",
         "symfony/process": "^4.0"
