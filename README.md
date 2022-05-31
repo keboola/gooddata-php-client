@@ -51,3 +51,6 @@ $client->login(KBGDC_USERNAME, KBGDC_PASSWORD);
 
 $pid = $client->getProjects()->createProject('Project name', KBGDC_AUTH_TOKEN);
 ```
+## License
+
+MIT licensed, see [LICENSE](./LICENSE) file.
