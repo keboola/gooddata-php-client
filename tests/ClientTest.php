@@ -62,7 +62,7 @@ class ClientTest extends AbstractClientTest
     public function testGoodDataClientPing()
     {
         try {
-            $this->client->setApiUrl('https://secure.gooddata.com');
+            $this->client->setApiUrl(getenv('KBGDC_API_URL'));
             $this->client->get('/gdc/ping');
             $ping = true;
         } catch (\Exception $e) {

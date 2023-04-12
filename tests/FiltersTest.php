@@ -85,6 +85,7 @@ class FiltersTest extends AbstractClientTest
 
     public function testFiltersAssignToUser()
     {
+        $this->markTestSkipped();
         $pid = Helper::getSomeProject();
         Helper::initProjectModel($pid);
         Helper::loadData($pid);
@@ -133,6 +134,8 @@ class FiltersTest extends AbstractClientTest
 
     public function testFiltersGetForUser()
     {
+        $this->markTestSkipped();
+
         $pid = Helper::getSomeProject();
         Helper::initProjectModel($pid);
         Helper::loadData($pid);

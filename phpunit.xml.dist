@@ -6,8 +6,8 @@
          convertNoticesToExceptions="true"
          convertWarningsToExceptions="true"
          processIsolation="false"
-         stopOnFailure="true"
-         stopOnError="true"
+         stopOnFailure="false"
+         stopOnError="false"
          syntaxCheck="false"
          bootstrap="tests/bootstrap.php">
 
@@ -25,7 +25,4 @@
             <directory>vendor</directory>
         </blacklist>
     </filter>
-    <!--logging>
-        <log type="coverage-clover" target="build/logs/clover.xml"/>
-    </logging-->
 </phpunit>

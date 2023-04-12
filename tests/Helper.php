@@ -264,7 +264,11 @@ class Helper
     public static function loadData($pid)
     {
         $dirName = uniqid();
-        $webDav = new WebDav(KBGDC_USERNAME, KBGDC_PASSWORD);
+        $webDav = new WebDav(
+            KBGDC_USERNAME,
+            KBGDC_PASSWORD,
+            getenv('KBGDC_API_URL') . '/gdc/uploads/'
+        );
         $webDav->createFolder($dirName);
         $webDav->upload(__DIR__.'/data/categories.csv', $dirName);
         $webDav->upload(__DIR__.'/data/products.csv', $dirName);
