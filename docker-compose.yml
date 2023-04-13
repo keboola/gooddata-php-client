@@ -1,0 +1,17 @@
+version: "2"
+
+services:
+  dev:
+    image: keboola/gooddata-php-client
+    build:
+        context: .
+        dockerfile: Dockerfile
+        args:
+            - PHP_VERSION=7.4
+    volumes:
+      - ./:/code
+    environment:
+      - KBGDC_API_URL
+      - KBGDC_USERNAME
+      - KBGDC_PASSWORD
+      - KBGDC_AUTH_TOKEN

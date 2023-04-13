@@ -6,3 +6,4 @@ test.sh
 run-test*.sh
 build
 debug.php
+.env

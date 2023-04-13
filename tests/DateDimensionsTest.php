@@ -9,7 +9,7 @@ namespace Keboola\GoodData\Test;
 use Keboola\GoodData\Identifiers;
 use Keboola\GoodData\TimeDimension;
 
-class DateDimensionTest extends AbstractClientTest
+class DateDimensionsTest extends AbstractClientTest
 {
     public function testCreateDateDimensionDateOnly()
     {

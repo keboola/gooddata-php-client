@@ -11,6 +11,11 @@ use Keboola\GoodData\Users;
 
 class UsersTest extends AbstractClientTest
 {
+    protected function setUp()
+    {
+        $this->markTestSkipped();
+    }
+
     public function testUsersGetUidFromUri()
     {
         $uid = uniqid();

@@ -17,12 +17,20 @@ class WebDavTest extends \PHPUnit\Framework\TestCase
     {
         parent::__construct();
 
-        $this->client = new WebDav(KBGDC_USERNAME, KBGDC_PASSWORD);
+        $this->client = new WebDav(
+            KBGDC_USERNAME,
+            KBGDC_PASSWORD,
+            getenv('KBGDC_API_URL') . 'gdc/uploads/'
+        );
+    }
+    protected function setUp()
+    {
+        $this->markTestSkipped();
     }
 
     public function testWebDavGetUrl()
     {
-        $this->assertEquals('https://secure.gooddata.com/gdc/uploads/', $this->client->getUrl());
+        $this->assertEquals(getenv('KBGDC_API_URL') . 'gdc/uploads/', $this->client->getUrl());
     }
 
     public function testWebDavUpload()

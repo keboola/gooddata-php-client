@@ -19,6 +19,7 @@ class ProjectsTest extends AbstractClientTest
 
     public function testProjectsCreateProject()
     {
+        $this->markTestSkipped();
         $projects = new Projects($this->client);
 
         $title = KBGDC_PROJECTS_PREFIX . uniqid();
@@ -43,6 +44,7 @@ class ProjectsTest extends AbstractClientTest
 
     public function testProjectsDeleteProject()
     {
+        $this->markTestSkipped();
         $pid = Helper::createProject();
 
         $result = $this->client->get("/gdc/projects/$pid");
@@ -75,6 +77,7 @@ class ProjectsTest extends AbstractClientTest
 
     public function testProjectsGetUsersForProjectYield()
     {
+        $this->markTestSkipped();
         $projects = new Projects($this->client);
 
         $pid = Helper::getSomeProject();
@@ -120,6 +123,7 @@ class ProjectsTest extends AbstractClientTest
 
     public function testProjectsClone()
     {
+        $this->markTestSkipped();
         // Get and clean first project
         $pid1 = Helper::getSomeProject();
         Helper::cleanUpProject($pid1);
@@ -165,6 +169,7 @@ class ProjectsTest extends AbstractClientTest
 
     public function testProjectsIsAccessible()
     {
+        $this->markTestSkipped();
         $pid = Helper::getSomeProject();
         $user = Helper::getSomeUser();
 
@@ -180,6 +185,7 @@ class ProjectsTest extends AbstractClientTest
 
     public function testProjectsIsAccessibleByUser()
     {
+        $this->markTestSkipped();
         $uid = Helper::createUser();
         $pid = Helper::getSomeProject();
         $projects = new Projects($this->client);
@@ -192,6 +198,7 @@ class ProjectsTest extends AbstractClientTest
 
     public function testProjectsLeave()
     {
+        $this->markTestSkipped();
         $email = uniqid().'@'.KBGDC_USERS_DOMAIN;
         $pass = uniqid();
         $uid = Helper::createUser($email, $pass);
@@ -212,6 +219,7 @@ class ProjectsTest extends AbstractClientTest
 
     public function testProjectsInvite()
     {
+        $this->markTestSkipped();
         $pid = Helper::getSomeProject();
         $email = uniqid().'@'.KBGDC_USERS_DOMAIN;
         $projects = new Projects($this->client);

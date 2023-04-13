@@ -32,5 +32,24 @@
     },
     "autoload-dev": {
         "psr-4": { "Keboola\\GoodData\\Test\\": "tests/" }
+    },
+    "scripts": {
+        "tests": "phpunit",
+        "phpcs": "phpcs -n --ignore=vendor --standard=psr2 --extensions=php .",
+        "build": [
+            "@phpcs",
+            "@tests"
+        ],
+        "ci": [
+            "@composer validate --no-check-publish --no-check-all",
+            "@build"
+        ]
+    },
+    "config": {
+        "sort-packages": true,
+        "optimize-autoloader": true,
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
     }
 }
