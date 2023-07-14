@@ -158,7 +158,7 @@ class ProjectModel
         return $model;
     }
 
-    public function update($pid, $model, $dryRun = false)
+    public function update($pid, $model, $dryRun = false, $multivalueAttributes = [])
     {
         $model = $this->normalizeModel($model);
 
@@ -169,24 +169,41 @@ class ProjectModel
             if (count($update['lessDestructiveMaql'])) {
                 foreach ($update['lessDestructiveMaql'] as $i => $m) {
                     try {
+                        $m = $this->updateMaqlWithMultivalueAttributes($m, $multivalueAttributes);
                         $this->client->getDatasets()->executeMaql($pid, $m);
                     } catch (Exception $e) {
                         if (!empty($update['moreDestructiveMaql'][$i])) {
-                            $m = $update['moreDestructiveMaql'][$i];
+                            $m = $this->updateMaqlWithMultivalueAttributes($update['moreDestructiveMaql'][$i], $multivalueAttributes);
                             $this->client->getDatasets()->executeMaql($pid, $m);
                         } else {
                             throw $e;
                         }
                     }
-
                     return [
                         'description' => $update['description'],
-                        'maql' => $m
+                        'maql' => $m,
                     ];
                 }
             }
             return false;
         }
+    }
+
+    private function updateMaqlWithMultivalueAttributes(string $maql, array $multivalueAttributes): string
+    {
+        $lines = explode("\n", $maql);
+
+        foreach ($multivalueAttributes as $attribute) {
+            foreach ($lines as &$line) {
+                if (strpos($line, sprintf('ALTER ATTRIBUTE {%s} ADD KEYS', $attribute)) === 0) {
+                    $line = str_replace(';', ' MULTIVALUE;', $line);
+                    break;
+                }
+            }
+        }
+
+
+        return implode("\n", $lines);
     }
 
     public function updateDataSet($pid, $datasetModel, $dryRun = false)
@@ -273,6 +290,6 @@ class ProjectModel
         }
 
         // Update
-        return $this->update($pid, $gdModel, $dryRun);
+        return $this->update($pid, $gdModel, $dryRun, $model['multivalueAttributes'] ?? []);
     }
 }

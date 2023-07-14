@@ -1,11 +1,6 @@
 # GoodData API PHP client by Keboola
 [![Latest Stable Version](https://poser.pugx.org/keboola/gooddata-php-client/v/stable.svg)](https://packagist.org/packages/keboola/gooddata-php-client) [![License](https://poser.pugx.org/keboola/gooddata-php-client/license.svg)](https://packagist.org/packages/keboola/gooddata-php-client) [![Total Downloads](https://poser.pugx.org/keboola/gooddata-php-client/downloads.svg)](https://packagist.org/packages/keboola/gooddata-php-client)
 
-## Status
-
-[![Build Status](https://travis-ci.org/keboola/gooddata-php-client.svg)](https://travis-ci.org/keboola/gooddata-php-client) [![Code Climate](https://codeclimate.com/github/keboola/gooddata-php-client/badges/gpa.svg)](https://codeclimate.com/github/keboola/gooddata-php-client) [![Test Coverage](https://codeclimate.com/github/keboola/gooddata-php-client/badges/coverage.svg)](https://codeclimate.com/github/keboola/gooddata-php-client/coverage)
-
-
 ## Installation
 
 Library is available as composer package.
