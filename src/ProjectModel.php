@@ -193,15 +193,14 @@ class ProjectModel
     {
         $lines = explode("\n", $maql);
 
-        foreach ($multivalueAttributes as $attribute) {
+        foreach ($multivalueAttributes as $fkName => $attribute) {
             foreach ($lines as &$line) {
-                if (strpos($line, sprintf('ALTER ATTRIBUTE {%s} ADD KEYS', $attribute)) === 0) {
+                if (strpos($line, sprintf('ALTER ATTRIBUTE {%s} ADD KEYS {%s}', $attribute, $fkName)) === 0) {
                     $line = str_replace(';', ' MULTIVALUE;', $line);
                     break;
                 }
             }
         }
-
 
         return implode("\n", $lines);
     }
